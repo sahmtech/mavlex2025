@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'उत्पाद कैटलॉग मॉड्यूल',
+    'catalogue_qr' => 'कैटलॉग क्यूआर कोड',
+    'generate_qr' => 'क्यूआर उत्पन्न करें',
+    'select_business_location' => 'व्यवसाय स्थान चुनें',
+    'download_image' => 'छवि डाउनलोड करें',
+    'qr_code_color' => 'क्यूआर कोड रंग',
+    'catalogue_instruction_1' => 'व्यवसाय स्थान और क्यूआर कोड रंग चुनें',
+    'catalogue_instruction_2' => 'शीर्षक, उपशीर्षक चुनें और लोगो दिखाना है या नहीं',
+    'catalogue_instruction_3' => 'क्यूआर कोड उत्पन्न करने के लिए क्लिक करें',
+    'product_catalogue' => 'उत्पाद कैटलॉग',
+    'show_business_logo_on_qrcode' => 'क्यूआर कोड पर व्यवसाय लोगो दिखाएं',
+    'title' => 'शीर्षक',
+    'subtitle' => 'उपशीर्षक',
+    'setting' => 'सेटिंग्स',
+    'outofstock_products' => 'स्टॉक खत्म उत्पाद',
+    'show' => 'दिखाएँ',
+    'hide' => 'छिपाएँ',
+    'save' => 'सहेजें',
+    'out_of_stock' => 'स्टॉक समाप्त',
+];

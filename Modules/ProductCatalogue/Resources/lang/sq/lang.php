@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'Moduli i Katalogut të Produkteve',
+    'catalogue_qr' => 'Kodi QR i Katalogut',
+    'generate_qr' => 'Gjenero QR',
+    'select_business_location' => 'Zgjidh Vendndodhjen e Biznesit',
+    'download_image' => 'Shkarko Imazhin',
+    'qr_code_color' => 'Ngjyra e Kodit QR',
+    'catalogue_instruction_1' => 'Zgjidhni vendndodhjen e biznesit dhe ngjyrën e kodit QR',
+    'catalogue_instruction_2' => 'Zgjidhni titullin, nëntitullin dhe nëse do të shfaqet logoja',
+    'catalogue_instruction_3' => 'Klikoni për të gjeneruar kodin QR',
+    'product_catalogue' => 'Katalogu i Produkteve',
+    'show_business_logo_on_qrcode' => 'Shfaq logon e biznesit në kodin QR',
+    'title' => 'Titulli',
+    'subtitle' => 'Nëntitulli',
+    'setting' => 'Cilësimet',
+    'outofstock_products' => 'Produktet e Mbaruara',
+    'show' => 'Shfaq',
+    'hide' => 'Fshih',
+    'save' => 'Ruaj',
+    'out_of_stock' => 'Nuk ka në magazinë',
+];

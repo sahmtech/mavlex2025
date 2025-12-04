@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => '产品目录模块',
+    'catalogue_qr' => '目录二维码',
+    'generate_qr' => '生成二维码',
+    'select_business_location' => '选择业务位置',
+    'download_image' => '下载图片',
+    'qr_code_color' => '二维码颜色',
+    'catalogue_instruction_1' => '选择业务位置和二维码颜色',
+    'catalogue_instruction_2' => '选择标题、副标题，并决定是否显示标志',
+    'catalogue_instruction_3' => '点击生成二维码',
+    'product_catalogue' => '产品目录',
+    'show_business_logo_on_qrcode' => '在二维码上显示企业标志',
+    'title' => '标题',
+    'subtitle' => '副标题',
+    'setting' => '设置',
+    'outofstock_products' => '缺货产品',
+    'show' => '显示',
+    'hide' => '隐藏',
+    'save' => '保存',
+    'out_of_stock' => '缺货',
+];

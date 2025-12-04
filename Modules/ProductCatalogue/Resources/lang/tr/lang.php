@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'Ürün Kataloğu Modülü',
+    'catalogue_qr' => 'Katalog QR Kodu',
+    'generate_qr' => 'QR Kodu Oluştur',
+    'select_business_location' => 'İşletme Konumunu Seç',
+    'download_image' => 'Resmi İndir',
+    'qr_code_color' => 'QR Kod Rengi',
+    'catalogue_instruction_1' => 'İşletme konumunu ve QR kod rengini seçin',
+    'catalogue_instruction_2' => 'Başlık, alt başlık seçin ve logoyu gösterip göstermeyeceğinizi belirleyin',
+    'catalogue_instruction_3' => 'QR kodu oluşturmak için tıklayın',
+    'product_catalogue' => 'Ürün Kataloğu',
+    'show_business_logo_on_qrcode' => 'QR kodunda işletme logosunu göster',
+    'title' => 'Başlık',
+    'subtitle' => 'Alt Başlık',
+    'setting' => 'Ayarlar',
+    'outofstock_products' => 'Stokta Olmayan Ürünler',
+    'show' => 'Göster',
+    'hide' => 'Gizle',
+    'save' => 'Kaydet',
+    'out_of_stock' => 'Stokta Yok',
+];

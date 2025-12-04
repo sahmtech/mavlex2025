@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'Productcatalogusmodule',
+    'catalogue_qr' => 'Catalogus QR',
+    'generate_qr' => 'Genereer QR',
+    'select_business_location' => 'Selecteer Bedrijfslocatie',
+    'download_image' => 'Afbeelding Downloaden',
+    'qr_code_color' => 'QR Code Kleur',
+    'catalogue_instruction_1' => 'Selecteer de bedrijfslocatie en QR-codekleur',
+    'catalogue_instruction_2' => 'Kies titel, ondertitel en of het logo wordt getoond',
+    'catalogue_instruction_3' => 'Klik om QR-code te genereren',
+    'product_catalogue' => 'Productcatalogus',
+    'show_business_logo_on_qrcode' => 'Toon bedrijfslogo op QR-code',
+    'title' => 'Titel',
+    'subtitle' => 'Ondertitel',
+    'setting' => 'Instellingen',
+    'outofstock_products' => 'Niet op voorraad producten',
+    'show' => 'Tonen',
+    'hide' => 'Verbergen',
+    'save' => 'Opslaan',
+    'out_of_stock' => 'Niet op voorraad',
+];

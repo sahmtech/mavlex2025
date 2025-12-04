@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'Produktkatalogmodul',
+    'catalogue_qr' => 'Katalog QR',
+    'generate_qr' => 'QR-Code generieren',
+    'select_business_location' => 'Geschäftsstandort auswählen',
+    'download_image' => 'Bild herunterladen',
+    'qr_code_color' => 'QR-Code Farbe',
+    'catalogue_instruction_1' => 'Wählen Sie den Geschäftsstandort und die QR-Code-Farbe aus',
+    'catalogue_instruction_2' => 'Wählen Sie Titel, Untertitel und ob das Logo angezeigt werden soll',
+    'catalogue_instruction_3' => 'Klicken Sie, um den QR-Code zu generieren',
+    'product_catalogue' => 'Produktkatalog',
+    'show_business_logo_on_qrcode' => 'Firmenlogo auf dem QR-Code anzeigen',
+    'title' => 'Titel',
+    'subtitle' => 'Untertitel',
+    'setting' => 'Einstellungen',
+    'outofstock_products' => 'Nicht vorrätige Produkte',
+    'show' => 'Anzeigen',
+    'hide' => 'Ausblenden',
+    'save' => 'Speichern',
+    'out_of_stock' => 'Nicht vorrätig',
+];

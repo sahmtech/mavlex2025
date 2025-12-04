@@ -1,0 +1,11 @@
+{
+    "name": "ZatcaIntegrationKsa",
+    "alias": "zatcaintegrationksa",
+    "description": "This module is used to integrate UltimatePOS with ZATCA, Saudi Arabia",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\ZatcaIntegrationKsa\\Providers\\ZatcaIntegrationKsaServiceProvider"
+    ],
+    "files": []
+}

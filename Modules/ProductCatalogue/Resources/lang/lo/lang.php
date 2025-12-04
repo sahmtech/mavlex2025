@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'ໂມດູນລາຍການສິນຄ້າ',
+    'catalogue_qr' => 'ລາຍການ QR',
+    'generate_qr' => 'ສ້າງ QR',
+    'select_business_location' => 'ເລືອກສະຖານທີ່ທຸລະກິດ',
+    'download_image' => 'ດາວໂຫຼດຮູບ',
+    'qr_code_color' => 'ສີ QR Code',
+    'catalogue_instruction_1' => 'ເລືອກສະຖານທີ່ທຸລະກິດ ແລະ ສີ QR Code',
+    'catalogue_instruction_2' => 'ເລືອກຫົວຂໍ້, ຫົວຂໍ້ຍ່ອຍ ແລະ ວ່າຈະສະແດງໂລໂກ້ຫຼືບໍ່',
+    'catalogue_instruction_3' => 'ຄລິກເພື່ອສ້າງ QR Code',
+    'product_catalogue' => 'ລາຍການສິນຄ້າ',
+    'show_business_logo_on_qrcode' => 'ສະແດງໂລໂກ້ທຸລະກິດໃນ QR Code',
+    'title' => 'ຫົວຂໍ້',
+    'subtitle' => 'ຫົວຂໍ້ຍ່ອຍ',
+    'setting' => 'ຕັ້ງຄ່າ',
+    'outofstock_products' => 'ສິນຄ້າໝົດສະຕັອກ',
+    'show' => 'ສະແດງ',
+    'hide' => 'ເຊື່ອງ',
+    'save' => 'ບັນທຶກ',
+    'out_of_stock' => 'ໝົດສະຕັອກ',
+];

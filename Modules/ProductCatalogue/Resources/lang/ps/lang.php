@@ -1,0 +1,22 @@
+<?php
+return [
+    'productcatalogue_module' => 'د محصول کاتالوګ ماډل',
+    'catalogue_qr' => 'کاتالوګ QR',
+    'generate_qr' => 'QR جوړ کړئ',
+    'select_business_location' => 'د سوداګرۍ موقعیت وټاکئ',
+    'download_image' => 'انځور ډاونلوډ کړئ',
+    'qr_code_color' => 'د QR کوډ رنګ',
+    'catalogue_instruction_1' => 'د سوداګرۍ موقعیت او د QR کوډ رنګ وټاکئ',
+    'catalogue_instruction_2' => 'سرلیک، فرعي سرلیک غوره کړئ، او ایا لوګو ښودل کیږي که نه',
+    'catalogue_instruction_3' => 'د QR کوډ جوړولو لپاره کلیک وکړئ',
+    'product_catalogue' => 'د محصول کاتالوګ',
+    'show_business_logo_on_qrcode' => 'په QR کوډ کې د سوداګرۍ لوګو وښایاست',
+    'title' => 'سرلیک',
+    'subtitle' => 'فرعي سرلیک',
+    'setting' => 'ترتیبات',
+    'outofstock_products' => 'له زېرمې وتلي محصولات',
+    'show' => 'وښایاست',
+    'hide' => 'پټ کړئ',
+    'save' => 'وساتئ',
+    'out_of_stock' => 'له زېرمې وتلی',
+];
