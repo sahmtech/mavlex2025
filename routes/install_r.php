@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 | Routes related to installation of the software
 |
 */
-
+//test commit
 Route::get('/install-start', [Install\InstallController::class, 'index'])->name('install.index');
 Route::get('/install/check-server', [Install\InstallController::class, 'checkServer'])->name('install.checkServer');
 Route::get('/install/details', [Install\InstallController::class, 'details'])->name('install.details');
