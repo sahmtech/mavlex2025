@@ -1627,7 +1627,7 @@ $output['custom__fields']=$custom_fields;
             $zatca_qr = ! empty($il->common_settings['zatca_qr']) ? true : false;
 
             if ($zatca_qr) {
-                $total_order_tax = $transaction->tax_amount + $total_line_taxes;
+                $total_order_tax = $transaction->tax_amount;
 
                 $zatca_phase = ! empty($il->common_settings['zatca_phase']) ? $il->common_settings['zatca_phase'] : '';
                 $qr_code_text = $this->_zatca_qr_text($business_details->name, $business_details->tax_number_1, $transaction, $total_order_tax, $zatca_phase);
