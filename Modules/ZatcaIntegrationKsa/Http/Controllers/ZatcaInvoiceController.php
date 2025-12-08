@@ -640,7 +640,7 @@ class ZatcaInvoiceController extends Controller
             // Process each sell line.
             foreach ($sell->sell_lines as $index => $line) {
                 try {
-                    if ($line->quantity_returned != 0) {
+                    
                         // Retrieve product name.
                         $product = Product::findOrFail($line->product_id);
 
@@ -710,7 +710,7 @@ class ZatcaInvoiceController extends Controller
                             ->setAllowanceChargeTaxCategory($taxcategory)
                             ->setAllowanceChargeTaxPercentage($taxPercentage)
                             ->getElement();
-                    }
+                    
                 } catch (\Exception $e) {
                     Log::error(__('zatcaintegrationksa::lang.failed_to_process_sell_line', ['error' => $e->getMessage()]));
                     $portalMode = (isset($setting) && isset($setting['portal_mode'])) ? $setting['portal_mode'] : 'developer-portal';
