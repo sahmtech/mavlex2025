@@ -84,6 +84,8 @@
                                     <th>#</th>
                                     <th>@lang('product.product_name')</th>
                                     <th>@lang('sale.unit_price')</th>
+                                    <th>@lang('sale.tax')</th>
+
                                     <th>@lang('lang_v1.sell_quantity')</th>
                                     <th>@lang('lang_v1.return_quantity')</th>
                                     <th>@lang('lang_v1.return_subtotal')</th>
@@ -121,9 +123,15 @@
                                             <br>
                                             {{ $sell_line->variations->sub_sku }}
                                         </td>
-                                        <td><span class="display_currency" 
-                                               
-                                                data-currency_symbol="true">{{ $sell_line->unit_price_inc_tax }}</span>
+                                        <td>
+                                            {{-- FIXED: Combined classes into one attribute --}}
+                                            <input name="products[{{ $loop->index }}][unit_price]"
+                                                class="form-control input-sm input_number unit_price"
+                                                value="{{ $sell_line->unit_price }}">
+                                        </td>
+                                        <td>
+                                            <span class="display_currency"
+                                                data-currency_symbol="true">{{ $sell_line->item_tax }}</span>
                                         </td>
                                         <td>{{ $sell_line->formatted_qty }} {{ $unit_name }}</td>
 
@@ -135,29 +143,19 @@
                                                 data-msg-abs_digit="@lang('lang_v1.decimal_value_not_allowed')"
                                                 data-rule-max-value="{{ $sell_line->quantity }}"
                                                 data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $sell_line->formatted_qty, 'unit' => $unit_name])">
-                                            <!-- <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
-                                                class="unit_price"
-                                                value="{{ @num_format($sell_line->unit_price_inc_tax) }}">
+                                            
+
+                                            <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
+                                                class="unit_price_inc_tax" value="{{ $sell_line->unit_price_inc_tax }}">
                                             <input name="products[{{ $loop->index }}][sell_line_id]" type="hidden"
                                                 value="{{ $sell_line->id }}">
-                                            <input name="products[{{ $loop->index }}][unit_price]" type="hidden"
-                                                value="{{ $sell_line->unit_price }}"> -->
 
-												  <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
-                                                class="unit_price_inc_tax"
-                                                value="{{ @num_format($sell_line->unit_price_inc_tax) }}">
-                                            <input name="products[{{ $loop->index }}][sell_line_id]" type="hidden"
-                                                value="{{ $sell_line->id }}">
-                                            <input name="products[{{ $loop->index }}][unit_price]" type="hidden"
-                                                value="{{ $sell_line->unit_price }}" class="unit_price">
+                                            
 
-												 <input name="products[{{ $loop->index }}][unit_price]" type="hidden"
-                                                value="{{ $sell_line->unit_price }}" class="unit_price">
-
-												 <input name="products[{{ $loop->index }}][item_tax]" type="hidden"
-                                                value="{{ $sell_line->item_tax }}">
-												 <input name="products[{{ $loop->index }}][tax_id]" type="hidden"
-                                                value="{{ $sell_line->tax_id }}" >
+                                            <input class="item_tax" name="products[{{ $loop->index }}][item_tax]"
+                                                type="hidden" value="{{ $sell_line->item_tax }}">
+                                            <input name="products[{{ $loop->index }}][tax_id]" type="hidden"
+                                                value="{{ $sell_line->tax_id }}">
                                         </td>
                                         <td>
                                             <div class="return_subtotal"></div>
@@ -274,7 +272,7 @@
             // });
         });
         $(document).on('change',
-            'input.return_qty, #discount_amount, #discount_type, #adjustment_title, #adjustment_amount',
+            'input.return_qty, input.unit_price, #discount_amount, #discount_type, #adjustment_title, #adjustment_amount',
             function() {
                 update_sell_return_total()
             });
@@ -285,9 +283,11 @@
             $('table#sell_return_table tbody tr').each(function() {
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
-                var subtotal = quantity * unit_price;
-				console.log(subtotal);
-				
+                var item_tax = __read_number($(this).find('input.item_tax'));
+                var temp = unit_price + item_tax;
+                var subtotal = quantity * temp;
+                console.log(subtotal);
+
                 $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal, true));
                 net_return += subtotal;
             });
