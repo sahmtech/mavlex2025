@@ -24,7 +24,7 @@ return [
     'discount' => 'Discount',
     'total_payable' => 'Total Payable',
     'cancel' => 'Cancel',
-    'subtotal_inc_tax'=>'Subtotal inc tax',
+    'subtotal_inc_tax' => 'Subtotal inc tax',
 
     'draft' => 'Draft',
     'finalize' => 'Pay & Checkout',
@@ -71,4 +71,6 @@ return [
     'shipping' => 'Shipping',
     'shipping_details' => 'Shipping Details',
     'shipping_charges' => 'Shipping Charges',
+    "unit_price_without_tax" => "Unit Price without tax",
+
 ];

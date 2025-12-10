@@ -19,6 +19,8 @@ return [
     "product" => "الصنف",
     "products" => "الأصناف",
     "unit_price" => "سعر الوحدة",
+    "unit_price_without_tax" => "سعر الوحدة (بدون ضريبة)",
+
     "qty" => "الكمية",
     "subtotal" => "الإجمالي الفرعي",
     "recent_transactions" => "المعاملات الأخيرة",
@@ -29,7 +31,7 @@ return [
     "edit_order_tax" => "تعديل ضريبة الطلبية",
     "discount_type" => "نوع الخصم",
     "discount_amount" => "مبلغ الخصم",
-    'subtotal_inc_tax'=>'الاجمالي شامل الضريبة',
+    'subtotal_inc_tax' => 'الاجمالي شامل الضريبة',
     "no_recent_transactions" => "لاتوجد عمليات جديدة",
     "final" => "فاتورة نهائية",
     "invoice_no" => "رقم الفاتورة",
@@ -61,8 +63,8 @@ return [
     "shipping_details" => "تفاصيل الشحن",
     "shipping_charges" => "رسوم الشحن",
     'total-with-tax' => 'الاجمالي مع ضريبة',
-    'total-without-tax'=>'الاجمالي بدون ضريبة',
-    'create_sale'=>'إنشاء فاتورة',
-    
+    'total-without-tax' => 'الاجمالي بدون ضريبة',
+    'create_sale' => 'إنشاء فاتورة',
+
 
 ];

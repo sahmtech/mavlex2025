@@ -6255,8 +6255,9 @@ class TransactionUtil extends Util
                 if ($line) {
                     $new_price = $product_data['unit_price'];
                     $unit_price_inc_tax = $product_data['unit_price_inc_tax'];
-
+                    $item_tax = $product_data['item_tax'];
                     $line->unit_price = $new_price;
+                    $line->item_tax = $item_tax;
                     $line->unit_price_before_discount = $new_price;
                     $line->unit_price_inc_tax = $unit_price_inc_tax;
 

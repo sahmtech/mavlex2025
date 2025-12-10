@@ -83,12 +83,11 @@
                                 <tr class="bg-green">
                                     <th>#</th>
                                     <th>@lang('product.product_name')</th>
-                                    <th>@lang('sale.unit_price')</th>
+                                    <th>@lang('sale.unit_price_without_tax')</th>
                                     <th>@lang('sale.tax')</th>
-
                                     <th>@lang('lang_v1.sell_quantity')</th>
                                     <th>@lang('lang_v1.return_quantity')</th>
-                                    <th>@lang('lang_v1.return_subtotal')</th>
+                                    <th>@lang('lang_v1.return_subtotal_with_tax')</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -110,6 +109,14 @@
                                                 $check_decimal = 'false';
                                             }
                                         }
+                                        $default_return_quantity = $sell_line->quantity;
+
+                                        if (
+                                            !empty($sell_line->quantity_returned) &&
+                                            $sell_line->quantity_returned > 0
+                                        ) {
+                                            $default_return_quantity = $sell_line->quantity_returned;
+                                        }
 
                                     @endphp
                                     <tr>
@@ -124,20 +131,19 @@
                                             {{ $sell_line->variations->sub_sku }}
                                         </td>
                                         <td>
-                                            {{-- FIXED: Combined classes into one attribute --}}
                                             <input name="products[{{ $loop->index }}][unit_price]"
                                                 class="form-control input-sm input_number unit_price"
                                                 value="{{ $sell_line->unit_price }}">
                                         </td>
                                         <td>
-                                            <span class="display_currency"
+                                            <span class="display_currency line_tax_span "
                                                 data-currency_symbol="true">{{ $sell_line->item_tax }}</span>
                                         </td>
                                         <td>{{ $sell_line->formatted_qty }} {{ $unit_name }}</td>
 
                                         <td>
                                             <input type="text" name="products[{{ $loop->index }}][quantity]"
-                                                value="{{ @format_quantity($sell_line->quantity_returned) }}"
+                                                value="{{ @format_quantity($default_return_quantity) }}"
                                                 class="form-control input-sm input_number return_qty input_quantity"
                                                 data-rule-abs_digit="{{ $check_decimal }}"
                                                 data-msg-abs_digit="@lang('lang_v1.decimal_value_not_allowed')"
@@ -283,10 +289,16 @@
             $('table#sell_return_table tbody tr').each(function() {
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
-                var item_tax = __read_number($(this).find('input.item_tax'));
-                var temp = unit_price + item_tax;
-                var subtotal = quantity * temp;
-                console.log(subtotal);
+                var calculated_tax = unit_price * 0.15;
+
+                $(this).find('.line_tax_span').text(__currency_trans_from_en(calculated_tax, true));
+                $(this).find('input.item_tax').val(calculated_tax);
+
+                var price_inc_tax = unit_price + calculated_tax;
+                $(this).find('input.unit_price_inc_tax').val(price_inc_tax);
+
+                var total_price = unit_price + calculated_tax;
+                var subtotal = quantity * total_price;
 
                 $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal, true));
                 net_return += subtotal;
