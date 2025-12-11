@@ -108,4 +108,16 @@ class TransactionSellLine extends Model
     {
         return $this->belongsTo(\App\TransactionSellLine::class, 'so_line_id');
     }
+
+    public function returnLines()
+    {
+        return $this->hasMany(\App\TransactionSellLine::class, 'parent_sell_line_id');
+    }
+
+    public function getQuantityReturnedAttribute()
+    {
+        $quantity_returned = $this->returnLines()->sum('quantity');
+
+        return $quantity_returned;
+    }
 }

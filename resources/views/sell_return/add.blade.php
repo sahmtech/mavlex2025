@@ -88,6 +88,7 @@
                                     <th>@lang('lang_v1.sell_quantity')</th>
                                     <th>@lang('lang_v1.return_quantity')</th>
                                     <th>@lang('lang_v1.return_subtotal_with_tax')</th>
+                                    <th>@lang('messages.action')</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -147,16 +148,15 @@
                                                 class="form-control input-sm input_number return_qty input_quantity"
                                                 data-rule-abs_digit="{{ $check_decimal }}"
                                                 data-msg-abs_digit="@lang('lang_v1.decimal_value_not_allowed')"
-                                                data-rule-max-value="{{ $sell_line->quantity }}"
-                                                data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $sell_line->formatted_qty, 'unit' => $unit_name])">
-                                            
+                                                data-rule-max-value="{{ $sell_line->returnable_qty }}"
+                                                data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $sell_line->returnable_qty, 'unit' => $unit_name])">
 
                                             <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
                                                 class="unit_price_inc_tax" value="{{ $sell_line->unit_price_inc_tax }}">
                                             <input name="products[{{ $loop->index }}][sell_line_id]" type="hidden"
                                                 value="{{ $sell_line->id }}">
 
-                                            
+
 
                                             <input class="item_tax" name="products[{{ $loop->index }}][item_tax]"
                                                 type="hidden" value="{{ $sell_line->item_tax }}">
@@ -165,6 +165,11 @@
                                         </td>
                                         <td>
                                             <div class="return_subtotal"></div>
+                                        </td>
+                                        <td class="text-center">
+                                            <button type="button" class="btn btn-xs remove-return-row">
+                                                <i class="fa fa-trash" style="font-size: 0.8em;"></i>
+                                            </button>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -220,6 +225,33 @@
                             ]) !!}
                         </div>
                     </div>
+
+                    @if ($sell->returns->count() > 0)
+                        <div class="col-sm-6">
+                            <strong>@lang('lang_v1.previous_returns')</strong>
+                            <table style="width:100%;">
+                                @foreach ($sell->returns as $index => $return)
+                                    <tr>
+                                        <td style="width: 30px;">
+                                            <a role="button" tabindex="0" class="js_payment_info fa fa-info-circle"
+                                                style="margin-right:5px;" aria-label="Info" data-bs-toggle="tooltip"
+                                                index="{{ $index }}"></a>
+                                        </td>
+
+                                        <td>
+                                            <i class="o_field_widget text-start o_payment_label">
+                                                {{ __('lang_v1.returned_on') }}
+                                                {{ @format_datetime($return->transaction_date) }}
+                                            </i>
+                                        </td>
+
+
+                                    </tr>
+                                @endforeach
+                            </table>
+                        </div>
+                    @endif
+
                 </div>
 
 
@@ -282,6 +314,20 @@
             function() {
                 update_sell_return_total()
             });
+        $(document).on('click', '.remove-return-row', function() {
+            var row = $(this).closest('tr');
+
+            row.find('input.return_qty').val(0);
+
+            update_sell_return_total();
+
+            row.remove();
+
+            $('table#sell_return_table tbody tr').each(function(index) {
+                $(this).find('td:first').text(index + 1);
+            });
+        });
+
 
         function update_sell_return_total() {
             var net_return = 0;

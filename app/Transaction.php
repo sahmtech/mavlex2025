@@ -43,7 +43,7 @@ class Transaction extends Model
 
     public function sell_lines()
     {
-        return $this->hasMany(\App\TransactionSellLine::class);
+        return $this->hasMany(\App\TransactionSellLine::class, 'transaction_id');
     }
 
     public function contact()
@@ -406,6 +406,11 @@ class Transaction extends Model
         }
 
         return $sales_orders;
+    }
+
+    public function returns()
+    {
+        return $this->hasMany(\App\Transaction::class, 'return_parent_id');
     }
 
    

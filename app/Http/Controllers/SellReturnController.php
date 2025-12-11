@@ -322,7 +322,7 @@ class SellReturnController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function add($id)
+    public function add($id){
     {
         if (!auth()->user()->can('access_sell_return') && !auth()->user()->can('access_own_sell_return')) {
             abort(403, 'Unauthorized action.');
@@ -345,6 +345,19 @@ class SellReturnController extends Controller
             }
 
             $sell->sell_lines[$key]->formatted_qty = $this->transactionUtil->num_f($value->quantity, false, null, true);
+            $total_returned = $value->quantity_returned;
+            $is_physical_product = $value->product->enable_stock;
+            $remaining_returnable_quantity = $value->quantity; 
+
+            // if ($is_physical_product) {
+            //     $remaining_returnable_quantity = $value->quantity - $total_returned;
+            // }
+
+            // if ($remaining_returnable_quantity < 0) {
+            //     $remaining_returnable_quantity = 0;
+            // }
+
+            $sell->sell_lines[$key]->returnable_qty = $this->transactionUtil->num_f($remaining_returnable_quantity, false, null, true);
         }
 
         return view('sell_return.add')
@@ -376,16 +389,17 @@ class SellReturnController extends Controller
 
             $user_id = $request->session()->get('user.id');
 
-            DB::beginTransaction();
+            // DB::beginTransaction();
 
             $sell_return = $this->transactionUtil->addSellReturn($input, $business_id, $user_id, true, true);
 
+            // dd($sell_return);
             $receipt = $this->receiptContent($business_id, $sell_return->location_id, $sell_return->id);
 
             // for zatca invoice response
             $this->moduleUtil->getModuleData('after_sales_return', ['transaction' => $sell_return]);
 
-            DB::commit();
+            // DB::commit();
 
             $output = [
                 'success' => 1,

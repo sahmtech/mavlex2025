@@ -1441,5 +1441,8 @@ return [
     'adjustment_default_title' => 'التسوية',
     'enter_adjustment_title' => 'ادخل عنوان للتسوية',
     'enter_adjustment_amount' => 'ادخل قيمة للتسوية',
+    'previous_returns' => 'لمردودات السابقة',
+    'returned_on' => 'تم الإرجاع في'
+
 
 ];
