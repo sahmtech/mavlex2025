@@ -309,25 +309,11 @@
             function() {
                 update_sell_return_total()
             });
-        $(document).on('click', '.remove-return-row', function() {
-            var row = $(this).closest('tr');
-
-            row.find('input.return_qty').val(0);
-
-            update_sell_return_total();
-
-            row.remove();
-
-            $('table#sell_return_table tbody tr').each(function(index) {
-                $(this).find('td:first').text(index + 1);
-            });
-        });
-
-
+     
         function update_sell_return_total() {
             var net_return = 0;
 
-            $('table#sell_return_table tbody tr').each(function() {
+            $('table#sell_return_table tbody tr').each(function() { 
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
                 var calculated_tax = unit_price * 0.15;
