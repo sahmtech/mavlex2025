@@ -322,7 +322,7 @@ class SellReturnController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function add($id){
+    public function add($id)
     {
         if (!auth()->user()->can('access_sell_return') && !auth()->user()->can('access_own_sell_return')) {
             abort(403, 'Unauthorized action.');
