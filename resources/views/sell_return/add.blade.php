@@ -88,7 +88,6 @@
                                     <th>@lang('lang_v1.sell_quantity')</th>
                                     <th>@lang('lang_v1.return_quantity')</th>
                                     <th>@lang('lang_v1.return_subtotal_with_tax')</th>
-                                    <th>@lang('messages.action')</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -166,11 +165,7 @@
                                         <td>
                                             <div class="return_subtotal"></div>
                                         </td>
-                                        <td class="text-center">
-                                            <button type="button" class="btn btn-xs remove-return-row">
-                                                <i class="fa fa-trash" style="font-size: 0.8em;"></i>
-                                            </button>
-                                        </td>
+                                        
                                     </tr>
                                 @endforeach
                             </tbody>
