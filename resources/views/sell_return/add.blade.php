@@ -342,12 +342,11 @@
             $('#adjustment_label').text(adjustment_title ? adjustment_title + ': ' : '@lang('lang_v1.adjustment_default_title')' + ': ');
             $('#adjustment_value').text(__currency_trans_from_en(adjustment_amount, true));
 
-            var net_return_with_adjustment = net_return_inc_tax + adjustment_amount;
 
             $('input#tax_amount').val(total_return_tax);
             $('span#total_return_discount').text(__currency_trans_from_en(discount, true));
             $('span#total_return_tax').text(__currency_trans_from_en(total_return_tax, true));
-            $('span#net_return').text(__currency_trans_from_en(net_return_with_adjustment, true));
+            $('span#net_return').text(__currency_trans_from_en(net_return, true));
         }
     </script>
 @endsection
