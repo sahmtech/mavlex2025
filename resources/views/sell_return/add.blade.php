@@ -47,16 +47,6 @@
         <div class="box box-solid">
             <div class="box-body">
                 <div class="row">
-                    <div class="col-sm-4">
-                        <div class="form-group">
-                            {!! Form::label('invoice_no', __('sale.invoice_no') . ':') !!}
-                            {!! Form::text(
-                                'invoice_no',
-                                !empty($sell->return_parent->invoice_no) ? $sell->return_parent->invoice_no : null,
-                                ['class' => 'form-control'],
-                            ) !!}
-                        </div>
-                    </div>
                     <div class="col-sm-3">
                         <div class="form-group">
                             {!! Form::label('transaction_date', __('messages.date') . ':*') !!}
@@ -165,7 +155,7 @@
                                         <td>
                                             <div class="return_subtotal"></div>
                                         </td>
-                                        
+
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -309,11 +299,12 @@
             function() {
                 update_sell_return_total()
             });
-     
+
         function update_sell_return_total() {
             var net_return = 0;
+            var total_return_tax = 0;
 
-            $('table#sell_return_table tbody tr').each(function() { 
+            $('table#sell_return_table tbody tr').each(function() {
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
                 var calculated_tax = unit_price * 0.15;
@@ -323,12 +314,13 @@
 
                 var price_inc_tax = unit_price + calculated_tax;
                 $(this).find('input.unit_price_inc_tax').val(price_inc_tax);
-
+                var line_tax = __read_number($(this).find('input.item_tax'));
                 var total_price = unit_price + calculated_tax;
                 var subtotal = quantity * total_price;
 
                 $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal, true));
                 net_return += subtotal;
+                total_return_tax += (quantity * line_tax);
             });
 
             var discount = 0;
@@ -352,9 +344,9 @@
 
             var net_return_with_adjustment = net_return_inc_tax + adjustment_amount;
 
-            $('input#tax_amount').val(total_tax);
+            $('input#tax_amount').val(total_return_tax);
             $('span#total_return_discount').text(__currency_trans_from_en(discount, true));
-            $('span#total_return_tax').text(__currency_trans_from_en(total_tax, true));
+            $('span#total_return_tax').text(__currency_trans_from_en(total_return_tax, true));
             $('span#net_return').text(__currency_trans_from_en(net_return_with_adjustment, true));
         }
     </script>

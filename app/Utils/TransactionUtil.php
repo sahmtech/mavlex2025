@@ -6268,11 +6268,10 @@ class TransactionUtil extends Util
         }
 
         //Generate reference number
-        if (empty($sell_return_data['invoice_no'])) {
-            //Update reference count
-            $ref_count = $this->setAndGetReferenceCount('sell_return', $business_id);
-            $sell_return_data['invoice_no'] = $this->generateReferenceNumber('sell_return', $ref_count, $business_id);
-        }
+
+        $ref_count = $this->setAndGetReferenceCount('sell_return', $business_id);
+        $sell_return_data['invoice_no'] = $this->generateReferenceNumber('sell_return', $ref_count, $business_id);
+
 
         $sell_return_data['transaction_date'] = $sell_return_data['transaction_date'] ?? \Carbon::now();
         $sell_return_data['business_id'] = $business_id;
