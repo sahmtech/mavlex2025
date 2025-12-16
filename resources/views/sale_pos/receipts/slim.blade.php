@@ -644,7 +644,7 @@
                                     @endif
                                 </td>
                             </tr> --}}
-        @if (!empty($receipt_details->line_taxes))
+        
             <div class="flex-box">
                 <p class="width-50 text-right">@lang('lang_v1.line_taxes'):</p>
                 <p class="width-50 text-right">
@@ -659,7 +659,7 @@
                     @endif
                 </p>
             </div>
-        @endif
+       
 
         @if ($receipt_details->round_off_amount > 0)
             <div class="flex-box">
