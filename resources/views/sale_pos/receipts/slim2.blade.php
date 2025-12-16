@@ -66,8 +66,8 @@
 						{{ $receipt_details->sub_heading_line5 }}<br/>
 					@endif
 
-					@if(!empty($receipt_details->business_tax_number))
-						<br><b>{{ $receipt_details->tax_label1 }}</b> {{ $receipt_details->business_tax_number }}
+					@if(!empty($receipt_details->tax_info1))
+						<br><b>{{ $receipt_details->tax_label1 }}</b> {{ $receipt_details->tax_info1 }}
 					@endif
 
 					@if(!empty($receipt_details->tax_info2))
