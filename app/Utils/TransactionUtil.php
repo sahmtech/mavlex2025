@@ -1311,7 +1311,7 @@ class TransactionUtil extends Util
             }
 
             $lines = $transaction->sell_lines()->whereNull('parent_sell_line_id')->with($sell_line_relations)->get();
-            $line_taxes = [];
+            // $line_taxes = [];
 
             foreach ($lines as $key => $value) {
                 if (! empty($value->sub_unit_id)) {
@@ -1320,23 +1320,23 @@ class TransactionUtil extends Util
                     $lines[$key] = $formated_sell_line;
                 }
 
-                if (empty($value->item_tax) || $value->item_tax == 0) {
-                    continue;
-                }
+                // if (empty($value->item_tax) || $value->item_tax == 0) {
+                //     continue;
+                // }
 
-                if ($value->line_tax) {
-                    $tax_label = $value->line_tax->name ?? 'Tax';
-                    $tax_amount = $value->item_tax * $value->quantity;
+                // if ($value->line_tax) {
+                //     $tax_label = $value->line_tax->name ?? 'Tax';
+                //     $tax_amount = $value->item_tax * $value->quantity;
 
-                    if (isset($line_taxes[$tax_label])) {
-                        $line_taxes[$tax_label] += $tax_amount;
-                    } else {
-                        $line_taxes[$tax_label] = $tax_amount;
-                    }
-                }
+                //     if (isset($line_taxes[$tax_label])) {
+                //         $line_taxes[$tax_label] += $tax_amount;
+                //     } else {
+                //         $line_taxes[$tax_label] = $tax_amount;
+                //     }
+                // }
             }
 
-            $output['line_taxes'] = $line_taxes;
+            // $output['line_taxes'] = $line_taxes;
 
             $output['item_discount_label'] = $il->common_settings['item_discount_label'] ?? '';
 

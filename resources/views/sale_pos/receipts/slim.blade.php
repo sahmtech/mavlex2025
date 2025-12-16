@@ -69,8 +69,8 @@
                         {{ $receipt_details->sub_heading_line5 }}<br />
                     @endif
 
-                    @if (!empty($receipt_details->tax_info1))
-                        <br><b>{{ $receipt_details->tax_label1 }}</b> {{ $receipt_details->tax_info1 }}
+                    @if (!empty($receipt_details->business_tax_number))
+                        <br><b>{{ $receipt_details->tax_label1 }}</b> {{ $receipt_details->business_tax_number }}
                     @endif
 
                     @if (!empty($receipt_details->tax_info2))
@@ -606,7 +606,6 @@
             @endforeach
         @endif
 
-
         @if (!empty($receipt_details->reward_point_label))
             <div class="flex-box">
                 <p class="width-50 text-right">
@@ -626,37 +625,6 @@
                 </p>
                 <p class="width-50 text-right">
                     (+) {{ $receipt_details->tax }}
-                </p>
-            </div>
-        @endif
-        {{-- <tr>
-                                <th>{{ __('sale.order_tax') }}:</th>
-                                <td><b>(+)</b></td>
-                                <td class="text-right">
-                                    @if (!empty($receipt_details->order_taxes))
-                                        @foreach ($receipt_details->order_taxes as $k => $v)
-                                            <strong><small>{{ $k }}</small></strong> - <span
-                                                class="display_currency pull-right"
-                                                data-currency_symbol="true">{{ $v }}</span><br>
-                                        @endforeach
-                                    @else
-                                        0.00
-                                    @endif
-                                </td>
-                            </tr> --}}
-        @if (!empty($receipt_details->line_taxes))
-            <div class="flex-box">
-                <p class="width-50 text-right">@lang('lang_v1.line_taxes'):</p>
-                <p class="width-50 text-right">
-                    @if (!empty($receipt_details->line_taxes))
-                        @foreach ($receipt_details->line_taxes as $k => $v)
-                            <strong><small>{{ $k }}</small></strong> - <span
-                                class="display_currency pull-right"
-                                data-currency_symbol="true">{{ $v }}</span><br>
-                        @endforeach
-                    @else
-                        0.00
-                    @endif
                 </p>
             </div>
         @endif
