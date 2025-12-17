@@ -1311,32 +1311,30 @@ class TransactionUtil extends Util
             }
 
             $lines = $transaction->sell_lines()->whereNull('parent_sell_line_id')->with($sell_line_relations)->get();
-            // $line_taxes = [];
-
+            $line_taxes = [];
             foreach ($lines as $key => $value) {
                 if (! empty($value->sub_unit_id)) {
                     $formated_sell_line = $this->recalculateSellLineTotals($business_details->id, $value);
 
                     $lines[$key] = $formated_sell_line;
                 }
+                if (empty($value->item_tax) || $value->item_tax == 0 || !$value->line_tax) {
+                    continue;
+                }
 
-                // if (empty($value->item_tax) || $value->item_tax == 0) {
-                //     continue;
-                // }
+                $tax = $value->line_tax;
+                $tax_label = $tax->name ?? 'Tax';
 
-                // if ($value->line_tax) {
-                //     $tax_label = $value->line_tax->name ?? 'Tax';
-                //     $tax_amount = $value->item_tax * $value->quantity;
+                if ($tax->is_tax_group && str_contains($tax->name, 'منتجات التبغ')) {
+                    $tax_amount = $this->calculateTobaccoTax($value, $tax);
+                } else {
+                    $tax_amount = $value->item_tax * $value->quantity;
+                }
 
-                //     if (isset($line_taxes[$tax_label])) {
-                //         $line_taxes[$tax_label] += $tax_amount;
-                //     } else {
-                //         $line_taxes[$tax_label] = $tax_amount;
-                //     }
-                // }
+                $line_taxes[$tax_label] = ($line_taxes[$tax_label] ?? 0) + $tax_amount;
             }
 
-            // $output['line_taxes'] = $line_taxes;
+            $output['line_taxes'] = $line_taxes;
 
             $output['item_discount_label'] = $il->common_settings['item_discount_label'] ?? '';
 
@@ -6265,7 +6263,7 @@ class TransactionUtil extends Util
             ->with(['sell_lines', 'sell_lines.sub_unit'])
             ->findOrFail($input['transaction_id']);
 
-        
+
         $sell_return_data = [
             'invoice_no' => $input['invoice_no'] ?? null,
             'discount_type' => $discount['discount_type'],
@@ -6813,5 +6811,16 @@ class TransactionUtil extends Util
         }
 
         return $discount_amount;
+    }
+
+    private function calculateTobaccoTax(TransactionSellLine $line, TaxRate $tax)
+    {
+        $tax_per_unit = $line->unit_price;
+
+        if ($tax_per_unit < 25) {
+            $tax_per_unit = 25;
+        }
+
+        return $tax_per_unit * $line->quantity;
     }
 }
