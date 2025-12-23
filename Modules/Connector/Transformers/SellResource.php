@@ -18,7 +18,10 @@ class SellResource extends JsonResource
         $array = parent::toArray($request);
 
         foreach ($array['sell_lines'] as $key => $value) {
-            //check if mapping exists
+            $sell_line_model = $this->sell_lines[$key];
+
+            $array['sell_lines'][$key]['product_name'] = $sell_line_model->product->name ?? '';
+            $array['sell_lines'][$key]['variation_name'] = $sell_line_model->variations->name ?? '';
             if (isset($value['sell_line_purchase_lines'])) {
                 $purchase_lines = [];
                 foreach ($value['sell_line_purchase_lines'] as $sell_line_purchase_line) {
