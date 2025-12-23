@@ -2100,7 +2100,7 @@ class TransactionUtil extends Util
                 'variation' => (empty($variation->name) || $variation->name == 'DUMMY') ? '' : $variation->name,
                 'product_variation' => (empty($product_variation->name) || $product_variation->name == 'DUMMY') ? '' : $product_variation->name,
                 //Field for 2nd column
-                'quantity' => $this->num_f($line->quantity_returned, false, $business_details, true),
+                'quantity' => $this->num_f($line->quantity, false, $business_details, true),
                 'quantity_uf' => $line->quantity,
                 'units' => $unit_name,
 
@@ -2124,7 +2124,7 @@ class TransactionUtil extends Util
                 'unit_price_before_discount' => $this->num_f($line->unit_price_before_discount, false, $business_details),
                 'unit_price_before_discount_uf' => $line->unit_price_before_discount,
                 //Fields for 4th column
-                'line_total' => $this->num_f($line->unit_price_inc_tax * $line->quantity_returned, false, $business_details),
+                'line_total' => $this->num_f($line->unit_price_inc_tax * $line->quantity, false, $business_details),
                 'line_total_uf' => $line->unit_price_inc_tax * $line->quantity,
                 'line_total_exc_tax' => $this->num_f($line->unit_price * $line->quantity, false, $business_details),
                 'line_total_exc_tax_uf' => $line->unit_price * $line->quantity,
