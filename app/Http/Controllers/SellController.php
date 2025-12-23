@@ -492,7 +492,6 @@ class SellController extends Controller
                                     // $html .= '<li><a href="' . action([\App\Http\Controllers\SellController::class, 'duplicateSell'], [$row->id]) . '"><i class="fas fa-copy"></i> ' . __("lang_v1.duplicate_sell") . '</a></li>';
 
                                     $html .= '<li><a href="'.action([\App\Http\Controllers\SellReturnController::class, 'add'], [$row->id]).'"><i class="fas fa-undo"></i> '.__('lang_v1.sell_return').'</a></li>
-                                    <li><a href="'.action([\App\Http\Controllers\CreditNotesController::class, 'add'], [$row->id]).'"><i class="fas fa-file-invoice-dollar"></i> '.__('lang_v1.credit_note').'</a></li>
  
                                     <li><a href="'.action([\App\Http\Controllers\SellPosController::class, 'showInvoiceUrl'], [$row->id]).'" class="view_invoice_url"><i class="fas fa-eye"></i> '.__('lang_v1.view_invoice_url').'</a></li>';
                                 }
@@ -558,9 +557,14 @@ class SellController extends Controller
                 })
                 ->addColumn('return_due', function ($row) {
                     $return_due_html = '';
-                    if (!empty($row->return_exists)) {
-                        $return_due = $row->amount_return - $row->return_paid;
-                        $return_due_html .= '<a href="' . action([\App\Http\Controllers\TransactionPaymentController::class, 'show'], [$row->return_transaction_id]) . '" class="view_purchase_return_payment_modal"><span class="sell_return_due" data-orig-value="' . $return_due . '">' . $this->transactionUtil->num_f($return_due, true) . '</span></a>';
+                    $total_return = \App\Transaction::where('return_parent_id', $row->id)
+                        ->where('type', 'sell_return')
+                        ->sum('final_total');
+                    if ($total_return > 0) {
+                        $return_due_html .=
+                            '<span class="sell_return_due" data-orig-value="' . $total_return . '">' .
+                            $this->transactionUtil->num_f($total_return, true) .
+                            '</span>';
                     }
 
                     return $return_due_html;
