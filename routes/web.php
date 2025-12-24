@@ -46,7 +46,6 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalesCommissionAgentController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\SellController;
-use App\Http\Controllers\CreditNotesController;
 use App\Http\Controllers\SellingPriceGroupController;
 use App\Http\Controllers\SellPosController;
 use App\Http\Controllers\SellReturnController;
@@ -60,7 +59,11 @@ use App\Http\Controllers\UnitController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\VariationTemplateController;
 use App\Http\Controllers\WarrantyController;
+use App\Http\Controllers\ZatcaController;
 use Illuminate\Support\Facades\Route;
+use App\Transaction;
+use Bl\FatooraZatca\Classes\TaxCategoryCode;
+use App\TransactionSellLine;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,7 +77,6 @@ use Illuminate\Support\Facades\Route;
 */
 
 include_once 'install_r.php';
-
 Route::middleware(['setData'])->group(function () {
     Route::get('/', function () {
         return view('welcome');
@@ -543,4 +545,543 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone'])
     Route::get('/sells/invoice-url/{id}', [SellPosController::class, 'showInvoiceUrl']);
     Route::get('/show-notification/{id}', [HomeController::class, 'showNotification']);
     Route::post('/sell/check-invoice-number', [SellController::class, 'checkInvoiceNumber']);
+});
+
+
+
+
+Route::get('/test', function () {
+
+    $settings = new \Bl\FatooraZatca\Objects\Setting(
+        123456,
+        'Support@hermosaapp.com',
+        'TST-886431145-399999999900003',
+        'Riyadh Branch',
+        'Maximum Speed Tech Supply LTD',
+        '399999999900003',
+        'RRRD2929',
+        'Supply activities',
+        '1-TST|2-TST|3-ed22f1d8-e6a2-1118-9b58-d9a8f11e445f',
+        '2252039485'
+    );
+
+    $result   = \Bl\FatooraZatca\Zatca::generateZatcaSetting($settings);
+    $privateKey     = $result->private_key;
+    $certificate    = $result->cert_production;
+    $secret         = $result->secret_production;
+
+    $seller  = new \Bl\FatooraZatca\Objects\Seller(
+        $settings->registrationNumber,
+        'King Abdulaziz Road',
+        '1234',
+        '1234',
+        'Al Amal',
+        'Riyadh',
+        '12643',
+        $settings->taxNumber,
+        $settings->organizationName,
+        $privateKey,
+        $certificate,
+        $secret
+    );
+
+    $invoiceType = \Bl\FatooraZatca\Classes\InvoiceType::TAX_INVOICE;
+    $paymentType = \Bl\FatooraZatca\Classes\PaymentType::MULTIPLE;
+
+    $invoiceItems = [
+        new \Bl\FatooraZatca\Objects\InvoiceItem(1, 'Product Name', 1, 100, 0, 15, 15, 115),
+        new \Bl\FatooraZatca\Objects\InvoiceItem(10, 'Product Name', 2, 200, 0, 10, 5, 210),
+        new \Bl\FatooraZatca\Objects\InvoiceItem(2, 'Product ZZZ', 1, 50, 0, 0, 0, 50, null, TaxCategoryCode::ZERO_RATE),
+        new \Bl\FatooraZatca\Objects\InvoiceItem(3, 'Product ZZZ', 1, 100, 0, 0, 0, 100, null, TaxCategoryCode::EXEMPT),
+        new \Bl\FatooraZatca\Objects\InvoiceItem(4, 'Product ZZZ', 1, 10, 0, 0, 0, 10, null, TaxCategoryCode::OUT_OF_SCOPE),
+    ];
+
+    $invoice = new \Bl\FatooraZatca\Objects\Invoice(
+        1,
+        'INV100',
+        '42156fac-991b-4a12-a6f0-54c024edd29e',
+        '2023-11-17',
+        '15:54:00',
+        $invoiceType,
+        $paymentType,
+        460,
+        0,
+        25,
+        485,
+        $invoiceItems,
+        NULL,
+        1,
+        NULL,
+        'cash,visa',
+        'SAR',
+        15,
+        '2023-11-21'
+    );
+
+    $client  = new \Bl\FatooraZatca\Objects\Client(
+        'Salon X',
+        '300385711800003',
+        '12345',
+        'King Abdulaziz Road',
+        'C23',
+        '1234',
+        '123',
+        'Riyadh'
+    );
+
+    // $b2c = \Bl\FatooraZatca\Invoices\B2C::make($seller, $invoice)->report();
+    // echo $b2c->getQrImage();
+    // dd(
+    //     $b2c->getReportingStatus(),
+    //     $b2c->getValidationResults(),
+    //     $b2c->getInfoMessages(),
+    //     $b2c->getWarningMessages(),
+    //     $b2c->getErrorMessages(),
+    //     $b2c->getValidationResultStatus(),
+    //     $b2c->getResult(),
+    //     $b2c->getClearedInvoice(),
+    //     $b2c->getQr(),
+    //     $b2c->getInvoiceHash()
+    // );
+
+    $b2b = \Bl\FatooraZatca\Invoices\B2B::make($seller, $invoice, $client)->report();
+    echo $b2b->getQrImage();
+    dd(
+        // $b2b->getReportingStatus(),
+        $b2b->getValidationResults(),
+        $b2b->getInfoMessages(),
+        $b2b->getWarningMessages(),
+        $b2b->getErrorMessages(),
+        $b2b->getValidationResultStatus(),
+        $b2b->getResult(),
+        $b2b->getClearedInvoice(),
+        $b2b->getQr(),
+        $b2b->getInvoiceHash()
+    );
+})->name('test');
+
+
+Route::get('fix_invoices_4', function () {
+    $transactions1 = Transaction::where('business_id', 55)
+        ->where('type', 'sell')
+        ->where('tax_amount', 0)
+        ->whereBetween('transaction_date', ['2022-11-13', '2023-01-12'])
+        ->get();
+
+
+    foreach ($transactions1 as $transaction) {
+
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            $unit_price = $sellLine->unit_price_inc_tax * (100 / 115);
+            $tax = $sellLine->unit_price_inc_tax -  $unit_price;
+            $sellLine->update([
+                'tax_id' => null,
+                'unit_price' => $unit_price,
+                'item_tax' => 0,
+            ]);
+
+            $total_before_tax += ($unit_price * $sellLine->quantity);
+        }
+        $transaction->update([
+            'tax_id' =>  50,
+            'total_before_tax' => $total_before_tax,
+            'tax_amount' => $transaction->final_total - $total_before_tax,
+        ]);
+    }
+    dump("fixed from 2022-11-13 to 2023-01-12");
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+    $transactions2 = Transaction::where('business_id', 55)
+        ->where('type', 'sell')
+        ->where('tax_amount', 0)
+        ->whereBetween('transaction_date', ['2023-01-12', '2023-08-11'])
+        ->get();
+
+
+    foreach ($transactions2 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            $tax = 0;
+            $unit_price =  ($sellLine->unit_price_inc_tax * 100 / 200) * 100 / 115;
+            $tax =  $unit_price;
+            $sellLine->update([
+                'tax_id' => 81,
+                'unit_price' =>  $unit_price,
+                'item_tax' => $tax,
+            ]);
+            $total_before_tax += (($unit_price * 2) * $sellLine->quantity);
+        }
+        $transaction->update([
+            'tax_id' =>  50,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' =>  $transaction->final_total - $total_before_tax,
+        ]);
+    }
+    dump("fixed from 2023-01-12 to 2023-08-11");
+    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    $transactions3 = Transaction::where('business_id', 55)
+        ->where('type', 'sell')
+        ->where('tax_amount', 0)
+        ->where('transaction_date', '>', '2023-08-11')
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 50) {
+
+                $unit_price = $sellLine->unit_price_inc_tax * (100 / 115);
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 81 || $sellLine->product->tax == 82)) {
+                $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                $tax = $unit_price;
+                $sellLine->update([
+                    'tax_id' => 81,
+                    'unit_price' => $unit_price,
+                    'item_tax' => $tax,
+                    'unit_price_inc_tax' => $unit_price * 2,
+                ]);
+                $total_before_tax += (($unit_price * 2) * $sellLine->quantity);
+            }
+        }
+
+        $transaction->update([
+            'tax_id' =>  50,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $transaction->final_total -  $total_before_tax,
+        ]);
+    }
+
+    dd("fixed from 2023-08-11 to today");
+});
+
+
+
+
+
+
+Route::get('fix_invoices_5', function () {
+
+    $transactions3 = Transaction::where('business_id', 84)
+        ->where('type', 'sell')
+        ->where('tax_amount', 0)
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 87) {
+
+                $unit_price = $sellLine->unit_price_inc_tax * (100 / 115);
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 88 || $sellLine->product->tax == 89)) {
+                $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                $tax = 25;
+                $sellLine->update([
+                    'tax_id' => 88,
+                    'unit_price' => $unit_price,
+                    'item_tax' => $tax,
+                    'unit_price_inc_tax' => $unit_price + 25,
+                ]);
+                $total_before_tax += (($unit_price + 25) * $sellLine->quantity);
+            }
+        }
+
+        $transaction->update([
+            'tax_id' =>  87,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $transaction->final_total -  $total_before_tax,
+        ]);
+    }
+
+    dd("fixed all");
+});
+
+
+
+
+
+
+
+Route::get('fix_sales', [ImportSalesController::class, 'fix_sales']);
+
+
+Route::get('fix_invoices_6', function () {
+
+    $transactions3 = Transaction::where('business_id', 93)
+        ->where('type', 'sell')
+        ->get();
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        $final_before_tax = $transaction->final_total * 100 / 115;
+        foreach ($sellLines as  $sellLine) {
+            $unit_price_inc_tax =  $final_before_tax / $sellLine->quantity;
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 106) {
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price_inc_tax,
+                    'item_tax' => 0,
+                    'unit_price_inc_tax' => $unit_price_inc_tax,
+                ]);
+                $total_before_tax += ($unit_price_inc_tax * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 107 || $sellLine->product->tax == 108)) {
+                $tax = 25;
+                $sellLine->update([
+                    'tax_id' => 107,
+                    'unit_price' => $unit_price_inc_tax - 25,
+                    'item_tax' => $tax,
+                    'unit_price_inc_tax' => $unit_price_inc_tax,
+                ]);
+                $total_before_tax += (($unit_price_inc_tax) * $sellLine->quantity);
+            }
+        }
+        $transaction->update([
+            'tax_id' =>  106,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $transaction->final_total -  $total_before_tax,
+        ]);
+    }
+    dd("fixed all");
+});
+
+Route::get('fix7', function () {
+
+    $transactions3 = Transaction::where('business_id', 84)
+        ->where('type', 'sell')
+        ->where('transaction_date', '>', '2024-06-30')
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 87) {
+
+                $unit_price = $sellLine->unit_price_inc_tax * (100 / 115);
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 88 || $sellLine->product->tax == 89)) {
+                $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                $tax = $unit_price;
+                $sellLine->update([
+                    'tax_id' => 88,
+                    'unit_price' => $unit_price,
+                    // 'item_tax' => $tax,
+                    'item_tax' => 25,
+                    'unit_price_inc_tax' => $unit_price + 25,
+                ]);
+                $total_before_tax += (($unit_price + 25) * $sellLine->quantity);
+            }
+        }
+
+        $transaction->update([
+            'tax_id' =>  87,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $transaction->final_total -  $total_before_tax,
+        ]);
+    }
+
+    dd("fixed from 2024-06-30 to today");
+});
+
+
+
+Route::get('fix8', function () {
+
+    $transactions3 = Transaction::where('business_id', 55)
+        ->where('type', 'sell')
+        ->where('transaction_date', '>', '2025-03-30')
+        // ->where('tax_amount', 0)
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with(['product', 'variations'])
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        // if ($transaction->id == '189032')
+        //     dd($sellLines);
+        foreach ($sellLines as  $sellLine) {
+
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 50) {
+
+                // $unit_price = $sellLine->unit_price_before_discount;
+                $unit_price = $sellLine->variations->default_purchase_price;
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'unit_price_before_discount' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 81 || $sellLine->product->tax == 82)) {
+                // $unit_price = $sellLine->unit_price_before_discount;
+                $unit_price = $sellLine->variations->default_purchase_price;
+                // $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                // $tax = $unit_price;
+                $sellLine->update([
+                    'tax_id' => 81,
+                    'unit_price' => $unit_price,
+                    'unit_price_before_discount' => $unit_price,
+                    // 'item_tax' => $tax,
+                    'item_tax' => 25,
+                    'unit_price_inc_tax' => $unit_price + 25,
+                ]);
+                $total_before_tax += (($unit_price + 25) * $sellLine->quantity);
+            }
+        }
+        $total_before_tax  -= $transaction->discount_amount;
+        $transaction->update([
+            'tax_id' =>  50,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $total_before_tax * 0.15,
+            'final_total' => $total_before_tax * 1.15,
+        ]);
+    }
+
+    dd("fixed from 2025-03-30 to today");
+});
+
+
+Route::get('fix9', function () {
+
+    $transactions3 = Transaction::where('business_id', 93)
+        ->where('type', 'sell')
+        ->whereDate('transaction_date', '>=', '2025-09-20')
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 106) {
+
+                $unit_price = $sellLine->unit_price_before_discount;
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 107 || $sellLine->product->tax == 108)) {
+                $unit_price = $sellLine->unit_price_before_discount;
+                // $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                // $tax = $unit_price;
+                $sellLine->update([
+                    'tax_id' => 107,
+                    'unit_price' => $unit_price,
+                    // 'item_tax' => $tax,
+                    'item_tax' => 25,
+                    'unit_price_inc_tax' => $unit_price + 25,
+                ]);
+                $total_before_tax += (($unit_price + 25) * $sellLine->quantity);
+            }
+        }
+        $total_before_tax  -= $transaction->discount_amount;
+        $transaction->update([
+            'tax_id' =>  106,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $total_before_tax * 0.15,
+            'final_total' => $total_before_tax * 1.15,
+        ]);
+    }
+
+    dd("fixed from 2025-09-20 till today");
+});
+
+
+
+
+Route::get('fix_unit_price', function () {
+
+    $transactions3 = Transaction::where('business_id', 93)
+        ->where('type', 'sell')
+        ->where('transaction_date', '>', '2024-06-30')
+        // ->where('tax_amount', 0)
+        ->get();
+
+
+    foreach ($transactions3 as $transaction) {
+        $sellLines  = TransactionSellLine::with('product')
+            ->where('transaction_id', $transaction->id)
+            ->get();
+        $total_before_tax = 0;
+        foreach ($sellLines as  $sellLine) {
+            if ($sellLine->product->tax != null && $sellLine->product->tax == 106) {
+
+                $unit_price = $sellLine->unit_price_before_discount;
+                if ($unit_price == 13.25 || $unit_price == 13.2500 || $unit_price == "13.25" || $unit_price == "13.2500") {
+                    $unit_price = 14.13;
+                }
+                $sellLine->update([
+                    'tax_id' => null,
+                    'unit_price' => $unit_price,
+                    'item_tax' => 0,
+                ]);
+                $total_before_tax += ($unit_price * $sellLine->quantity);
+            } else if ($sellLine->product->tax != null && ($sellLine->product->tax == 107 || $sellLine->product->tax == 108)) {
+                $unit_price = $sellLine->unit_price_before_discount;
+                // $unit_price = ($sellLine->unit_price_inc_tax * 100 / 115) * 100 / 200;
+                // $tax = $unit_price;
+                $sellLine->update([
+                    'tax_id' => 107,
+                    'unit_price' => $unit_price,
+                    // 'item_tax' => $tax,
+                    'item_tax' => 25,
+                    'unit_price_inc_tax' => $unit_price + 25,
+                ]);
+                $total_before_tax += (($unit_price + 25) * $sellLine->quantity);
+            }
+        }
+        $total_before_tax  -= $transaction->discount_amount;
+        $transaction->update([
+            'tax_id' =>  106,
+            'total_before_tax' =>  $total_before_tax,
+            'tax_amount' => $total_before_tax * 0.15,
+            'final_total' => $total_before_tax * 1.15,
+        ]);
+    }
+
+    dd("fixed from 2024-06-30 to today");
 });
