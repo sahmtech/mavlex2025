@@ -4,11 +4,11 @@
 
 @section('content')
 
-@include('accounting::layouts.nav')
+{{-- @include('accounting::layouts.nav') --}}
 
 <!-- Content Header (Page header) -->
 <section class="content-header">
-    <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang( 'accounting::lang.balance_sheet' )</h1>
+    <h1>@lang( 'accounting::lang.balance_sheet' )</h1>
 </section>
 
 <section class="content">

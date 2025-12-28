@@ -234,7 +234,33 @@ class TransactionPaymentController extends Controller
      * @return \Illuminate\Http\Response
      */
 
+       function numberToCurrencyWords($amount, $currencyMain = 'dollar', $currencySub = 'cent', $locale = 'en') {
+        $formatter = new \NumberFormatter($locale, \NumberFormatter::SPELLOUT);
+    
+        $mainUnit = floor($amount);
+        $subUnit = round(($amount - $mainUnit) * 100);
+    
+        $mainWord = $formatter->format($mainUnit);
+        $subWord = $formatter->format($subUnit);
+    
+       // Determine if we should add 's' for plurals based on locale
+        $disablePluralS = in_array($locale, ['hi', 'hi_IN', 'ar', 'ar_SA', 'ar_EG']);
 
+        if ($disablePluralS) {
+            $mainLabel = $currencyMain;
+            $subLabel = $currencySub;
+        } else {
+            $mainLabel = ($mainUnit == 1) ? $currencyMain : $currencyMain . 's';
+            $subLabel = ($subUnit == 1) ? $currencySub : $currencySub . 's';
+        }
+        $result = ucfirst($mainWord) . " " . $mainLabel;
+    
+        if ($subUnit > 0) {
+            $result .= " " . $subWord . " " . $subLabel;
+        }
+    
+        return $result;
+    }
      public function view_receipt_vouchers($payment_id)
     {
         if (!(auth()->user()->can('sell.payments') ||
@@ -270,7 +296,13 @@ class TransactionPaymentController extends Controller
 
 
               
-            $single_payment_line['amount_string'] = \Alkoumi\LaravelArabicNumbers\Numbers::TafqeetMoney($single_payment_line->amount);
+            $single_payment_line['amount_string'] == $this->numberToCurrencyWords($single_payment_line->amount, 'ريالًا و', ' هللة فقط', 'ar');
+            //  $numberTransformer->toWords(t);
+            
+  
+            ;
+            
+            // \Alkoumi\LaravelArabicNumbers\Numbers::TafqeetMoney($single_payment_line->amount);
 
 
             // return view('transaction_payment.single_payment_view')
@@ -279,6 +311,48 @@ class TransactionPaymentController extends Controller
         }
     }
 
+
+     public function view_payment_vouchers($payment_id)
+    {
+        if (!(auth()->user()->can('sell.payments') ||
+            auth()->user()->can('purchase.payments') ||
+            auth()->user()->can('edit_sell_payment') ||
+            auth()->user()->can('delete_sell_payment') ||
+            auth()->user()->can('edit_purchase_payment') ||
+            auth()->user()->can('delete_purchase_payment') ||
+            auth()->user()->can('hms.add_booking_payment')
+        )) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (request()->ajax()) {
+            $business_id = request()->session()->get('business.id');
+            $single_payment_line = TransactionPayment::findOrFail($payment_id);
+
+            $transaction = null;
+            if (!empty($single_payment_line->transaction_id)) {
+                $transaction = Transaction::where('id', $single_payment_line->transaction_id)
+                    ->with(['contact', 'location', 'transaction_for'])
+                    ->first();
+            } else {
+                $child_payment = TransactionPayment::where('business_id', $business_id)
+                    ->where('parent_id', $payment_id)
+                    ->with(['transaction', 'transaction.contact', 'transaction.location', 'transaction.transaction_for'])
+                    ->first();
+                $transaction = !empty($child_payment) ? $child_payment->transaction : null;
+            }
+
+          
+            $payment_types = $this->transactionUtil->payment_types(null, false, $business_id);
+
+            $single_payment_line['amount_string'] == $this->numberToCurrencyWords($single_payment_line->amount, 'ريالًا و', ' هللة فقط', 'ar');
+            //  $numberTransformer->toWords(t);
+           
+                return view('transaction_payment.payment_vouchers_view')
+                ->with(compact('single_payment_line', 'transaction', 'payment_types'));
+                
+        }
+    }
     
     public function update(Request $request, $id)
     {

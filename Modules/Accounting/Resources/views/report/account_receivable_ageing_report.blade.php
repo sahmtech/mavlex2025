@@ -4,7 +4,7 @@
 
 @section('content')
 
-@include('accounting::layouts.nav')
+{{-- @include('accounting::layouts.nav') --}}
 
 <!-- Content Header (Page header) -->
 <section class="content">
