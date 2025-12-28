@@ -4,11 +4,11 @@
 
 @section('content')
 
-@include('accounting::layouts.nav')
+{{-- @include('accounting::layouts.nav') --}}
 
 <!-- Content Header (Page header) -->
 <section class="content-header">
-    <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang( 'accounting::lang.transfer' )</h1>
+    <h1>@lang( 'accounting::lang.transfer' )</h1>
 </section>
 <section class="content no-print">
     <div class="row">
@@ -44,23 +44,19 @@
     <div class="row">
         <div class="col-md-12">
             @component('components.widget', ['class' => 'box-solid'])
-                @can('accounting.add_transfer')
+            @if(auth()->user()->can('Admin#'.request()->session()->get('user.business_id')) ||auth()->user()->can('superadmin') || auth()->user()->can("accounting.add_transfer"))
                     @slot('tool')
-                        <div class="box-tools">
-                            <button type="button" class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right btn-modal"
-                                data-href="{{action([\Modules\Accounting\Http\Controllers\TransferController::class, 'create'])}}" 
-                                data-container="#create_transfer_modal" >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                    class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
-                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                                    <path d="M12 5l0 14" />
-                                    <path d="M5 12l14 0" />
-                                </svg> @lang('messages.add')
-                            </button>
-                        </div>
+                   
+                    <div class="box-tools">
+                        <button type="button" class="btn btn-block btn-primary btn-modal" 
+                            data-href="{{action([\Modules\Accounting\Http\Controllers\TransferController::class, 'create'])}}" 
+                            data-container="#create_transfer_modal" >
+                            <i class="fas fa-plus"></i> @lang( 'messages.add' )</a>
+                    </div> 
+                  
+                        
                     @endslot
-                @endcan
+                @endif
                 <table class="table table-bordered table-striped" id="transfer_table">
                     <thead>
                         <tr>

@@ -37,20 +37,13 @@
                     [$default_deposit_to->id => $default_deposit_to->name] : [], $default_deposit_to->id ?? null, ['class' => 'form-control accounts-dropdown','placeholder' => __('accounting::lang.deposit_to'), 'required' => 'required']); !!}
             </div>
         </div>
-        <div class="col-md-12">
-                <div class="form-group">
-                    {!! Form::label('description', __( 'lang_v1.description' ) . ':') !!}
-                    {!! Form::textarea('description', $note, ['class' => 'form-control', 
-                        'placeholder' => __( 'lang_v1.description' ), 'rows' => 3 ]); !!}
-                </div>
-            </div>
     </div>
 
 </div>
 
 <div class="modal-footer">
-    <button type="submit" class="tw-dw-btn tw-dw-btn-primary tw-text-white">@lang('messages.update')</button>
-    <button type="button" class="tw-dw-btn tw-dw-btn-neutral tw-text-white" data-dismiss="modal">@lang('messages.cancel')</button>
+    <button type="submit" class="btn btn-primary">@lang('messages.update')</button>
+    <button type="button" class="btn btn-default" data-dismiss="modal">@lang('messages.cancel')</button>
 </div>
 
 {!! Form::close() !!}

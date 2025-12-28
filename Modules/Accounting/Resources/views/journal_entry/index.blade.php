@@ -4,11 +4,11 @@
 
 @section('content')
 
-@include('accounting::layouts.nav')
+{{-- @include('accounting::layouts.nav') --}}
 
 <!-- Content Header (Page header) -->
 <section class="content-header">
-    <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang( 'accounting::lang.journal_entry' )</h1>
+    <h1>@lang( 'accounting::lang.journal_entry' )</h1>
 </section>
 <section class="content no-print">
 <div class="row">
@@ -29,16 +29,9 @@
         @can('accounting.add_journal')
             @slot('tool')
                 <div class="box-tools">
-                    <a class="tw-dw-btn tw-bg-gradient-to-r tw-from-indigo-600 tw-to-blue-500 tw-font-bold tw-text-white tw-border-none tw-rounded-full pull-right"
+                    <a class="btn btn-block btn-primary" 
                         href="{{action([\Modules\Accounting\Http\Controllers\JournalEntryController::class, 'create'])}}">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                            class="icon icon-tabler icons-tabler-outline icon-tabler-plus">
-                            <path stroke="none" d="M0 0h24v24H0z" fill="none" />
-                            <path d="M12 5l0 14" />
-                            <path d="M5 12l14 0" />
-                        </svg> @lang('messages.add')
-                    </a>
+                        <i class="fas fa-plus"></i> @lang( 'messages.add' )</a>
                 </div>
             @endslot
         @endcan
@@ -50,11 +43,13 @@
                     <th>@lang('accounting::lang.journal_date')</th>
                     <th>@lang('purchase.ref_no')</th>
                     <th>@lang('lang_v1.added_by')</th>
-                    <th>@lang('lang_v1.additional_notes')</th>
+                    <th>@lang('accounting::lang.additional_notes')</th>
+                    <th>@lang('accounting::lang.attachment')</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
+        <div class="modal fade" id="printJournalEntry" tabindex="-1" role="dialog"></div>
 
         
     @endcomponent
@@ -94,7 +89,11 @@
                 { data: 'operation_date', name: 'operation_date' },
                 { data: 'ref_no', name: 'ref_no' },
                 { data: 'added_by', name: 'added_by' },
-                { data: 'note', name: 'note' }
+                { data: 'note', name: 'note' },
+                {
+                        data: 'path_file',
+                        name: 'path_file'
+                    }
             ]
         });
 

@@ -7,8 +7,8 @@
 
     <div class="row">
         <div class="col-md-12">
-            {{-- <div class="box">
-                <div class="box-body"> --}}
+            <div class="box">
+                <div class="box-body">
                     <div class="table-responsive">
                     <table class="table table-bordered table-striped" id="{{$id}}">
                         <thead>
@@ -24,8 +24,8 @@
                         </thead>
                     </table>
                     </div>
-                {{-- </div>
-            </div> --}}
+                </div>
+            </div>
         </div>
     </div>
 

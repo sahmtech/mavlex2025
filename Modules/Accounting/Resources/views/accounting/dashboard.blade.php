@@ -3,14 +3,14 @@
 @section('title', __('accounting::lang.accounting'))
 
 @section('content')
-    @include('accounting::layouts.nav')
+    {{-- @include('accounting::layouts.nav') --}}
     
     <section class="content">
         <div class="row">
             <div class="col-md-12">
                 <div class="form-group pull-right">
                         <div class="input-group">
-                        <button type="button" class="tw-dw-btn tw-dw-btn-primary tw-text-white tw-dw-btn-sm" id="dashboard_date_filter">
+                        <button type="button" class="btn btn-primary" id="dashboard_date_filter">
                             <span>
                             <i class="fa fa-calendar"></i> {{ __('messages.filter_by_date') }}
                             </span>

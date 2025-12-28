@@ -15,6 +15,8 @@ use Modules\Accounting\Entities\AccountingBudget;
 use Modules\Accounting\Utils\AccountingUtil;
 use App\BusinessLocation;
 use App\ExpenseCategory;
+use Modules\Accounting\Entities\AccountingAccTransMappingSettingAutoMigration;
+use Modules\Accounting\Entities\AccountingMappingSettingAutoMigration;
 
 class SettingsController extends Controller
 {
@@ -40,17 +42,17 @@ class SettingsController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module'))) {
+
+        if (!(auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') || auth()->user()->can('accounting.settings'))) {
             abort(403, 'Unauthorized action.');
         }
 
         $account_sub_types = AccountingAccountType::where('account_type', 'sub_type')
-                                    ->where(function ($q) use ($business_id) {
-                                        $q->whereNull('business_id')
-                                        ->orWhere('business_id', $business_id);
-                                    })
-                                    ->get();
+            ->where(function ($q) use ($business_id) {
+                $q->whereNull('business_id')
+                    ->orWhere('business_id', $business_id);
+            })
+            ->get();
 
         $account_types = AccountingAccountType::accounting_primary_type();
 
@@ -58,22 +60,17 @@ class SettingsController extends Controller
 
         $business_locations = BusinessLocation::where('business_id', $business_id)->get();
 
-         $expence_categories = ExpenseCategory::where('business_id', $business_id)->get();
+        $expence_categories = ExpenseCategory::where('business_id', $business_id)->get();
 
         return view('accounting::settings.index')->with(compact('account_sub_types', 'account_types', 'accounting_settings', 'business_locations', 'expence_categories'));
     }
 
     public function resetData()
     {
-        $business_id = request()->session()->get('user.business_id');
+            $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module'))) {
-            abort(403, 'Unauthorized action.');
-        }
 
-        //check for admin
-        if (! $this->accountingUtil->is_admin(auth()->user())) {
+        if (!(auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') || auth()->user()->can('accounting.rest_accounting_data'))) {
             abort(403, 'Unauthorized action.');
         }
 
@@ -92,7 +89,11 @@ class SettingsController extends Controller
 
         AccountingAccount::where('business_id', $business_id)->delete();
 
-        return back();
+        AccountingAccTransMappingSettingAutoMigration::where('business_id', $business_id)->delete();
+
+        AccountingMappingSettingAutoMigration::where('business_id', $business_id)->delete();
+
+        return redirect()->back();
     }
 
     /**
@@ -115,31 +116,31 @@ class SettingsController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') || ($this->moduleUtil->hasThePermissionInSubscription($business_id,
-        'accounting_module')))) {
+        if (!(auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) ||  auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') || auth()->user()->can('accounting.settings'))) {
             abort(403, 'Unauthorized action.');
         }
-
         try {
             $accounting_settings = $request->only(['journal_entry_prefix', 'transfer_prefix', 'accounting_default_map']);
 
             Business::where('id', $business_id)
-                        ->update(['accounting_settings' => json_encode($accounting_settings)]);
-            
-            //Update accounting_default_map for each locations
-            $accounting_default_map = $request->get('accounting_default_map');
-            foreach($accounting_default_map as $location_id => $details){
-                BusinessLocation::where('id', $location_id)
-                    ->update(['accounting_default_map' => json_encode($details)]);
-            }
+                ->update(['accounting_settings' => json_encode($accounting_settings)]);
 
-            $output = ['success' => true,
+            //Update accounting_default_map for each locations
+            // $accounting_default_map = $request->get('accounting_default_map');
+            // foreach($accounting_default_map as $location_id => $details){
+            //     BusinessLocation::where('id', $location_id)
+            //         ->update(['accounting_default_map' => json_encode($details)]);
+            // }
+
+            $output = [
+                'success' => true,
                 'msg' => __('lang_v1.updated_success'),
             ];
         } catch (\Exception $e) {
-            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
-            $output = ['success' => false,
+            $output = [
+                'success' => false,
                 'msg' => __('messages.something_went_wrong'),
             ];
         }

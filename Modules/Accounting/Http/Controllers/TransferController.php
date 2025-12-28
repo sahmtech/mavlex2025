@@ -42,77 +42,92 @@ class TransferController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.view_transfer'))) {
+        if (!(auth()->user()->can('superadmin') ||$this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') ||auth()->user()->can('accounting.view_transfer')))
+        {
             abort(403, 'Unauthorized action.');
         }
 
+        $can_delete_transfer = auth()->user()->can('accounting.delete_transfer');
+        $can_edit_transfer = auth()->user()->can('accounting.edit_transfer');
+        $is_admin = auth()->user()->can('Admin#'.request()->session()->get('user.business_id')) ? true : false;
+        $is_superadmin = auth()->user()->can('superadmin') ? true : false;
+  
         if (request()->ajax()) {
             $transfers = AccountingAccTransMapping::where('accounting_acc_trans_mappings.business_id', $business_id)
-                        ->join('users as u', 'accounting_acc_trans_mappings.created_by', 'u.id')
-                        ->join('accounting_accounts_transactions as from_transaction', function ($join) {
-                            $join->on('from_transaction.acc_trans_mapping_id', '=', 'accounting_acc_trans_mappings.id')
-                                    ->where('from_transaction.type', 'debit');
-                        })
-                        ->join('accounting_accounts_transactions as to_transaction', function ($join) {
-                            $join->on('to_transaction.acc_trans_mapping_id', '=', 'accounting_acc_trans_mappings.id')
-                                    ->where('to_transaction.type', 'credit');
-                        })
-                        ->join('accounting_accounts as from_account',
-                        'from_transaction.accounting_account_id', 'from_account.id')
-                        ->join('accounting_accounts as to_account',
-                        'to_transaction.accounting_account_id', 'to_account.id')
-                        ->where('accounting_acc_trans_mappings.type', 'transfer')
-                        ->select(['accounting_acc_trans_mappings.id',
-                            'accounting_acc_trans_mappings.ref_no',
-                            'accounting_acc_trans_mappings.operation_date',
-                            'accounting_acc_trans_mappings.note',
-                            DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) 
+                ->join('users as u', 'accounting_acc_trans_mappings.created_by', 'u.id')
+                ->join('accounting_accounts_transactions as from_transaction', function ($join) {
+                    $join->on('from_transaction.acc_trans_mapping_id', '=', 'accounting_acc_trans_mappings.id')
+                        ->where('from_transaction.type', 'debit');
+                })
+                ->join('accounting_accounts_transactions as to_transaction', function ($join) {
+                    $join->on('to_transaction.acc_trans_mapping_id', '=', 'accounting_acc_trans_mappings.id')
+                        ->where('to_transaction.type', 'credit');
+                })
+                ->join(
+                    'accounting_accounts as from_account',
+                    'from_transaction.accounting_account_id',
+                    'from_account.id'
+                )
+                ->join(
+                    'accounting_accounts as to_account',
+                    'to_transaction.accounting_account_id',
+                    'to_account.id'
+                )
+                ->where('accounting_acc_trans_mappings.type', 'transfer')
+                ->select([
+                    'accounting_acc_trans_mappings.id',
+                    'accounting_acc_trans_mappings.ref_no',
+                    'accounting_acc_trans_mappings.operation_date',
+                    'accounting_acc_trans_mappings.note',
+                    DB::raw("CONCAT(COALESCE(u.surname, ''),' ',COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) 
                             as added_by"),
-                            'from_transaction.amount',
-                            'from_account.name as from_account_name',
-                            'to_account.name as to_account_name',
-                        ]);
+                    'from_transaction.amount',
+                    'from_account.name as from_account_name',
+                    'to_account.name as to_account_name',
+                ]);
 
-            if (! empty(request()->start_date) && ! empty(request()->end_date)) {
+            if (!empty(request()->start_date) && !empty(request()->end_date)) {
                 $start = request()->start_date;
                 $end = request()->end_date;
                 $transfers->whereDate('accounting_acc_trans_mappings.operation_date', '>=', $start)
-                            ->whereDate('accounting_acc_trans_mappings.operation_date', '<=', $end);
+                    ->whereDate('accounting_acc_trans_mappings.operation_date', '<=', $end);
             }
 
-            if (! empty(request()->transfer_from)) {
+            if (!empty(request()->transfer_from)) {
                 $transfers->where('from_account.id', request()->transfer_from);
             }
 
-            if (! empty(request()->transfer_to)) {
+            if (!empty(request()->transfer_to)) {
                 $transfers->where('to_account.id', request()->transfer_to);
             }
 
             return Datatables::of($transfers)
                 ->addColumn(
-                    'action', function ($row) {
+                    'action',
+                    function ($row) use ($is_admin, $can_edit_transfer, $can_delete_transfer,$is_superadmin) {
+
                         $html = '<div class="btn-group">
-                                <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-info tw-w-max dropdown-toggle" 
-                                    data-toggle="dropdown" aria-expanded="false">'.
-                                    __('messages.actions').
-                                    '<span class="caret"></span><span class="sr-only">Toggle Dropdown
+                                <button type="button" class="btn btn-info dropdown-toggle btn-xs" 
+                                    data-toggle="dropdown" aria-expanded="false">' .
+                            __('messages.actions') .
+                            '<span class="caret"></span><span class="sr-only">Toggle Dropdown
                                     </span>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-right" role="menu">';
-                        if (auth()->user()->can('accounting.edit_transfer')) {
+                                <ul class="dropdown-menu dropdown-menu-left" role="menu">';
+                        if (($is_admin || $can_edit_transfer||$is_superadmin||$is_superadmin)) {
                             $html .= '<li>
-                                <a href="#" data-href="'.action([\Modules\Accounting\Http\Controllers\TransferController::class, 'edit'],
-                                [$row->id]).'" class="btn-modal" data-container="#create_transfer_modal">
-                                    <i class="fas fa-edit"></i>'.__('messages.edit').'
+                                <a href="#" data-href="' . action(
+                                [\Modules\Accounting\Http\Controllers\TransferController::class, 'edit'],
+                                [$row->id]
+                            ) . '" class="btn-modal" data-container="#create_transfer_modal">
+                                    <i class="fas fa-edit"></i>' . __('messages.edit') . '
                                 </a>
                             </li>';
                         }
-                        if (auth()->user()->can('accounting.delete_transfer')) {
+                        if (($is_admin || $can_delete_transfer||$is_superadmin)) {
                             $html .= '<li>
-                                    <a href="#" data-href="'.action([\Modules\Accounting\Http\Controllers\TransferController::class, 'destroy'], [$row->id]).'" class="delete_transfer_button">
-                                        <i class="fas fa-trash" aria-hidden="true"></i>'.__('messages.delete').'
+                                    <a href="#" data-href="' . action([\Modules\Accounting\Http\Controllers\TransferController::class, 'destroy'], [$row->id]) . '" class="delete_transfer_button">
+                                        <i class="fas fa-trash" aria-hidden="true"></i>' . __('messages.delete') . '
                                     </a>
                                     </li>';
                         }
@@ -120,7 +135,8 @@ class TransferController extends Controller
                         $html .= '</ul></div>';
 
                         return $html;
-                    })
+                    }
+                )
                 ->editColumn('amount', function ($row) {
                     return $this->util->num_f($row->amount, true);
                 })
@@ -147,9 +163,8 @@ class TransferController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.add_transfer'))) {
+        if (!(auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') || auth()->user()->can('accounting.add_transfer')))
+         {
             abort(403, 'Unauthorized action.');
         }
 
@@ -168,11 +183,7 @@ class TransferController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.add_transfer'))) {
-            abort(403, 'Unauthorized action.');
-        }
+      
 
         try {
             DB::beginTransaction();
@@ -189,8 +200,8 @@ class TransferController extends Controller
             $ref_no = $request->get('ref_no');
             $ref_count = $this->util->setAndGetReferenceCount('accounting_transfer');
             if (empty($ref_no)) {
-                $prefix = ! empty($accounting_settings['transfer_prefix']) ?
-                $accounting_settings['transfer_prefix'] : '';
+                $prefix = !empty($accounting_settings['transfer_prefix']) ?
+                    $accounting_settings['transfer_prefix'] : '';
 
                 //Generate reference number
                 $ref_no = $this->util->generateReferenceNumber('accounting_transfer', $ref_count, $business_id, $prefix);
@@ -224,14 +235,16 @@ class TransferController extends Controller
 
             DB::commit();
 
-            $output = ['success' => 1,
+            $output = [
+                'success' => 1,
                 'msg' => __('lang_v1.added_success'),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
-            $output = ['success' => 0,
+            $output = [
+                'success' => 0,
                 'msg' => __('messages.something_went_wrong'),
             ];
         }
@@ -260,25 +273,22 @@ class TransferController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.edit_transfer'))) {
-            abort(403, 'Unauthorized action.');
-        }
-
         if (request()->ajax()) {
             $mapping_transaction = AccountingAccTransMapping::where('id', $id)
-                            ->where('business_id', $business_id)->firstOrFail();
+                ->where('business_id', $business_id)->firstOrFail();
 
             $debit_tansaction = AccountingAccountsTransaction::where('acc_trans_mapping_id', $id)
-                                    ->where('type', 'debit')
-                                    ->first();
+                ->where('type', 'debit')
+                ->first();
             $credit_tansaction = AccountingAccountsTransaction::where('acc_trans_mapping_id', $id)
-                                    ->where('type', 'credit')
-                                    ->first();
+                ->where('type', 'credit')
+                ->first();
 
-            return view('accounting::transfer.edit')->with(compact('mapping_transaction',
-            'debit_tansaction', 'credit_tansaction'));
+            return view('accounting::transfer.edit')->with(compact(
+                'mapping_transaction',
+                'debit_tansaction',
+                'credit_tansaction'
+            ));
         }
     }
 
@@ -292,23 +302,16 @@ class TransferController extends Controller
     public function update(Request $request, $id)
     {
         $business_id = request()->session()->get('user.business_id');
-
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.edit_transfer'))) {
-            abort(403, 'Unauthorized action.');
-        }
-
         try {
             $mapping_transaction = AccountingAccTransMapping::where('id', $id)
-                            ->where('business_id', $business_id)->firstOrFail();
+                ->where('business_id', $business_id)->firstOrFail();
 
             $debit_tansaction = AccountingAccountsTransaction::where('acc_trans_mapping_id', $id)
-                                    ->where('type', 'debit')
-                                    ->first();
+                ->where('type', 'debit')
+                ->first();
             $credit_tansaction = AccountingAccountsTransaction::where('acc_trans_mapping_id', $id)
-                                    ->where('type', 'credit')
-                                    ->first();
+                ->where('type', 'credit')
+                ->first();
 
             DB::beginTransaction();
             $from_account = $request->get('from_account');
@@ -340,14 +343,16 @@ class TransferController extends Controller
 
             DB::commit();
 
-            $output = ['success' => 1,
+            $output = [
+                'success' => 1,
                 'msg' => __('lang_v1.updated_success'),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
-            $output = ['success' => 0,
+            $output = [
+                'success' => 0,
                 'msg' => __('messages.something_went_wrong'),
             ];
         }
@@ -365,23 +370,26 @@ class TransferController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
 
-        if (! (auth()->user()->can('superadmin') ||
-            $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
-            ! (auth()->user()->can('accounting.delete_transfer'))) {
+        if (
+            !(auth()->user()->can('superadmin') ||
+                $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) ||
+            !(auth()->user()->can('accounting.delete_transfer'))
+        ) {
             abort(403, 'Unauthorized action.');
         }
 
         $user_id = request()->session()->get('user.id');
 
         $acc_trans_mapping = AccountingAccTransMapping::where('id', $id)
-                        ->where('business_id', $business_id)->firstOrFail();
+            ->where('business_id', $business_id)->firstOrFail();
 
-        if (! empty($acc_trans_mapping)) {
+        if (!empty($acc_trans_mapping)) {
             $acc_trans_mapping->delete();
             AccountingAccountsTransaction::where('acc_trans_mapping_id', $id)->delete();
         }
 
-        return ['success' => 1,
+        return [
+            'success' => 1,
             'msg' => __('lang_v1.deleted_success'),
         ];
     }

@@ -13,6 +13,10 @@ class AccountingAccountsTransaction extends Model
         return $this->belongsTo('Modules\Accounting\Entities\AccountingAccount', 'accounting_account_id');
     }
 
+    public function costCenter(){
+        return $this->belongsTo(CostCenter::class,'cost_center_id');
+    }
+
     /**
      * Creates new account transaction
      *
@@ -48,7 +52,7 @@ class AccountingAccountsTransaction extends Model
                 'transaction_payment_id' => $data['transaction_payment_id'],
             ],
             ['accounting_account_id' => $data['accounting_account_id'], 'amount' => $data['amount'],
-                'type' => $data['type'], 'sub_type' => $data['sub_type'], 'created_by' => $data['created_by'], 'operation_date' => $data['operation_date'], 'note' => $data['note']
+                'type' => $data['type'], 'sub_type' => $data['sub_type'], 'created_by' => $data['created_by'], 'operation_date' => $data['operation_date'],
             ]
         );
     }

@@ -1,6 +1,6 @@
 <div class="pos-tab-content">
     <div class="row">
-        {{-- @component('components.filters', ['title' => __('report.filters')]) --}}
+        @component('components.filters', ['title' => __('report.filters')])
             <div class="col-md-3">
                 <div class="form-group">
                     {!! Form::label('purchase_list_filter_location_id',  __('purchase.business_location') . ':') !!}
@@ -31,7 +31,7 @@
                     {!! Form::text('purchase_list_filter_date_range', null, ['placeholder' => __('lang_v1.select_a_date_range'), 'class' => 'form-control', 'readonly']); !!}
                 </div>
             </div>
-        {{-- @endcomponent --}}
+        @endcomponent
     </div>
 
     <div class="row">
