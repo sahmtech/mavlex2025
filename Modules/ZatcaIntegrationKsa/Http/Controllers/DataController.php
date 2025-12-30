@@ -48,14 +48,14 @@ class DataController extends ZatcaInvoiceController
     }
 
     public function after_sales($data)
-    {
-        $transaction = $data['transaction'];
+    {  
+        $transaction_id = $data['transaction']['id'];
         $business_id = request()->session()->get('user.business_id');
         $buniess = $buniess = Business::find($business_id);
         $settings = json_decode($buniess->zatca_settings, true);
 
         if ((isset($settings['sync_frequency']) && $settings['sync_frequency'] == 'instant')) {
-            return $this->sync_zatca_sale($transaction->id, $business_id);
+            return $this->sync_zatca_sale($transaction_id, $business_id);
         }
     }
 
