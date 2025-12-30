@@ -13,4 +13,7 @@ return [
 	'show_business_logo_on_qrcode' => 'إظهار الشعار على الرمز',
 	'title' => 'العنوان',
 	'subtitle' => 'العنوان الفرعي',
+	'upload_file_placeholder' => 'ارفع ملفًا لإنشاء رمز QR خاص به',
+	'upload_file' => 'ارفع ملف'
+
 ];
