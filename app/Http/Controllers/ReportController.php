@@ -738,7 +738,7 @@ class ReportController extends Controller
 
         if ($request->ajax()) {
             $business_id = $request->session()->get('user.business_id');
-            $taxes = TaxRate::forBusiness($business_id);
+            $taxes = TaxRate::where('business_id', $business_id)->get();
             $type = $request->input('type');
 
             $payment_types = $this->transactionUtil->payment_types(null, true, $business_id);
@@ -832,6 +832,7 @@ class ReportController extends Controller
                 $datatable->addColumn($col, function ($row) use ($tax, $type, $col, $group_taxes) {
                     $tax_amount = 0;
                     $is_vat_current_col = ((float)$tax['amount'] == 15);
+                    $is_tax_group = $tax->is_tax_group;
 
                     $has_tobacco_in_invoice = $row->sell_lines->contains(function ($line) {
                         return !empty($line->tobacco_tax) && $line->tobacco_tax > 0;
@@ -844,16 +845,13 @@ class ReportController extends Controller
                             if ($is_vat_current_col) {
                                 $tax_amount = $sell_line->transaction->tax_amount * ($sell_line->quantity - $sell_line->quantity_returned);
                             } else {
-                                if (
-                                    $sell_line->tax_id == $tax['id'] ||
-                                    (!empty($group_taxes[$sell_line->tax_id]) && array_key_exists($tax['id'], $group_taxes[$sell_line->tax_id]['sub_taxes']))
-                                ) {
-                                    $tax_amount += ($sell_line->tobacco_tax * ($sell_line->quantity - $sell_line->quantity_returned));
-                                }
+
+                                $tax_amount += ($sell_line->tobacco_tax * ($sell_line->quantity - $sell_line->quantity_returned));
                             }
 
-                            if ($sell_line->tax_id == $tax['id']) {
-                                $tax_amount += $sell_line->item_tax * 0;
+                            if ($is_tax_group && $is_tobacco_line) {
+
+                                $tax_amount = $sell_line->item_tax * ($sell_line->quantity - $sell_line->quantity_returned);
                             }
                         }
                     } elseif ($type == 'purchase') {
