@@ -20,4 +20,7 @@ return [
     'hide' => 'Hide',
     'save' => 'Save',
     'out_of_stock' => 'Out of stock',
+    'upload_file_placeholder' =>  'Upload a file to generate a QR code for it',
+    'upload_file' => 'Upload File'
+
 ];

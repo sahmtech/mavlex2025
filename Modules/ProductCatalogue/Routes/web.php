@@ -17,7 +17,7 @@ Route::get('/show-catalogue/{business_id}/{product_id}', [\Modules\ProductCatalo
 Route::middleware('web', 'authh', 'auth', 'SetSessionData', 'language', 'timezone', 'AdminSidebarMenu')->prefix('product-catalogue')->group(function () {
     Route::get('catalogue-qr', [\Modules\ProductCatalogue\Http\Controllers\ProductCatalogueController::class, 'generateQr']);
     Route::post('product-catalogue-setting', [\Modules\ProductCatalogue\Http\Controllers\ProductCatalogueController::class, 'productCatalogueSetting']);
-
+    Route::post('/upload-catalogue-file', [\Modules\ProductCatalogue\Http\Controllers\ProductCatalogueController::class, 'uploadFile'])->name('product-catalogue.upload');
     Route::get('install', [\Modules\ProductCatalogue\Http\Controllers\InstallController::class, 'index']);
     Route::post('install', [\Modules\ProductCatalogue\Http\Controllers\InstallController::class, 'install']);
     Route::get('install/uninstall', [\Modules\ProductCatalogue\Http\Controllers\InstallController::class, 'uninstall']);

@@ -831,24 +831,29 @@ class ReportController extends Controller
                 $raw_cols[] = $col;
                 $datatable->addColumn($col, function ($row) use ($tax, $type, $col, $group_taxes) {
                     $tax_amount = 0;
+                    $is_vat_current_col = ((float)$tax['amount'] == 15);
+
+                    $has_tobacco_in_invoice = $row->sell_lines->contains(function ($line) {
+                        return !empty($line->tobacco_tax) && $line->tobacco_tax > 0;
+                    });
+
                     if ($type == 'sell') {
                         foreach ($row->sell_lines as $sell_line) {
-                            if ($sell_line->tax_id == $tax['id']) {
-                                $tax_amount += ($sell_line->item_tax * ($sell_line->quantity - $sell_line->quantity_returned));
+                            $is_tobacco_line = (!empty($sell_line->tobacco_tax) && $sell_line->tobacco_tax > 0);
+
+                            if ($is_vat_current_col) {
+                                $tax_amount = $sell_line->transaction->tax_amount * ($sell_line->quantity - $sell_line->quantity_returned);
+                            } else {
+                                if (
+                                    $sell_line->tax_id == $tax['id'] ||
+                                    (!empty($group_taxes[$sell_line->tax_id]) && array_key_exists($tax['id'], $group_taxes[$sell_line->tax_id]['sub_taxes']))
+                                ) {
+                                    $tax_amount += ($sell_line->tobacco_tax * ($sell_line->quantity - $sell_line->quantity_returned));
+                                }
                             }
 
-                            //break group tax
-                            if (!empty($sell_line->line_tax) && $sell_line->line_tax->is_tax_group == 1 && array_key_exists($tax['id'], $group_taxes[$sell_line->tax_id]['sub_taxes'])) {
-                                $group_tax_details = $this->transactionUtil->groupTaxDetails($sell_line->line_tax, $sell_line->item_tax);
-
-                                $sub_tax_share = 0;
-                                foreach ($group_tax_details as $sub_tax_details) {
-                                    if ($sub_tax_details['id'] == $tax['id']) {
-                                        $sub_tax_share = $sub_tax_details['calculated_tax'];
-                                    }
-                                }
-
-                                $tax_amount += ($sub_tax_share * ($sell_line->quantity - $sell_line->quantity_returned));
+                            if ($sell_line->tax_id == $tax['id']) {
+                                $tax_amount += $sell_line->item_tax * 0;
                             }
                         }
                     } elseif ($type == 'purchase') {
@@ -872,29 +877,13 @@ class ReportController extends Controller
                             }
                         }
                     }
-                    if ($row->tax_id == $tax['id']) {
-                        $tax_amount += $row->tax_amount;
+                    if ($has_tobacco_in_invoice && $row->tax_id == $tax['id']) {
+                        $tax_amount += $row->tobocco_tax;
                     }
 
-                    //break group tax
-                    if (! empty($group_taxes[$row->tax_id]) && array_key_exists($tax['id'], $group_taxes[$row->tax_id]['sub_taxes'])) {
-                        $group_tax_details = $this->transactionUtil->groupTaxDetails($row->tax_id, $row->tax_amount);
-
-                        $sub_tax_share = 0;
-                        foreach ($group_tax_details as $sub_tax_details) {
-                            if ($sub_tax_details['id'] == $tax['id']) {
-                                $sub_tax_share = $sub_tax_details['calculated_tax'];
-                            }
-                        }
-
-                        $tax_amount += $sub_tax_share;
-                    }
-
-                    if ($tax_amount > 0) {
-                        return '<span class="display_currency ' . $col . '" data-currency_symbol="true" data-orig-value="' . $tax_amount . '">' . $tax_amount . '</span>';
-                    } else {
-                        return '';
-                    }
+                    return $tax_amount > 0
+                        ? '<span class="display_currency ' . $col . '" data-currency_symbol="true" data-orig-value="' . $tax_amount . '">' . $tax_amount . '</span>'
+                        : '';
                 });
             }
 
