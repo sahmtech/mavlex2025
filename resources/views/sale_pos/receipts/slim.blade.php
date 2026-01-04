@@ -645,18 +645,20 @@
                                 </td>
                             </tr> --}}
         @if (!empty($receipt_details->line_taxes))
-            @foreach ($receipt_details->line_taxes as $k => $v)
-                <div class="flex-box">
-                    <p class="width-50 text-right">
-                        <strong><small>{{ $k }}</small></strong>:
-                    </p>
-                    <p class="width-50 text-right">
-                        <span class="display_currency pull-right" data-currency_symbol="true">
-                            {{ $v }}
-                        </span>
-                    </p>
-                </div>
-            @endforeach
+            <div class="flex-box">
+                <p class="width-50 text-right">@lang('lang_v1.line_taxes'):</p>
+                <p class="width-50 text-right">
+                    @if (!empty($receipt_details->line_taxes))
+                        @foreach ($receipt_details->line_taxes as $k => $v)
+                            <strong><small>@lang('lang_v1.line_taxes')</small></strong> - <span
+                                class="display_currency pull-right"
+                                data-currency_symbol="true">{{ $v }}</span><br>
+                        @endforeach
+                    @else
+                        0.00
+                    @endif
+                </p>
+            </div>
         @endif
         @if ($receipt_details->round_off_amount > 0)
             <div class="flex-box">

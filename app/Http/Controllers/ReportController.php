@@ -1901,6 +1901,7 @@ class ReportController extends Controller
                     'transaction_sell_lines.line_discount_type as discount_type',
                     'transaction_sell_lines.line_discount_amount as discount_amount',
                     'transaction_sell_lines.item_tax',
+                    'transaction_sell_lines.tobacco_tax',
                     'tax_rates.name as tax',
                     'u.short_name as unit',
                     'transaction_sell_lines.parent_sell_line_id',
@@ -1950,6 +1951,29 @@ class ReportController extends Controller
             }
 
             return Datatables::of($query)
+                ->addColumn('tax2', function ($row) {
+                    if ($row->tobacco_tax && $row->tobacco_tax > 0) {
+                        return '<span data-orig-value="' . $row->tobacco_tax . '">' .
+                            $this->transactionUtil->num_f($row->tobacco_tax, true) .
+                            '</span>';
+                    }
+                })
+                
+                ->addColumn('tax3', function ($row) {
+                    if ($row->tobacco_tax && $row->tobacco_tax > 0) {
+                        $unit_price  = $row->unit_price ?? 0;
+                        $tobacco_tax = $row->tobacco_tax ?? 0;
+                        $qty         = $row->sell_qty ?? 1;
+
+                        $base_amount = ($unit_price + $tobacco_tax) * $qty;
+                        $vat_15 = $base_amount * 0.15;
+
+                        return '<span data-orig-value="' . $vat_15 . '">' .
+                            $this->transactionUtil->num_f($vat_15, true) .
+                            '</span>';
+                    }
+                })
+
                 ->editColumn('product_name', function ($row) {
                     $product_name = $row->product_name;
                     if ($row->product_type == 'variable') {
@@ -1972,7 +1996,7 @@ class ReportController extends Controller
                     $class = is_null($row->parent_sell_line_id) ? 'sell_qty' : '';
 
                     return '<span class="' . $class . '"  data-orig-value="' . $row->sell_qty . '" 
-                    data-unit="' . $row->unit . '" >' .
+                        data-unit="' . $row->unit . '" >' .
                         $this->transactionUtil->num_f($row->sell_qty, false, null, true) . '</span> ' . $row->unit;
                 })
                 ->editColumn('subtotal', function ($row) {
@@ -1987,16 +2011,16 @@ class ReportController extends Controller
                         $this->transactionUtil->num_f($row->unit_price, true) . '</span>';
                 })
                 ->editColumn('discount_amount', '
-                    @if($discount_type == "percentage")
-                        {{@num_format($discount_amount)}} %
-                    @elseif($discount_type == "fixed")
-                        {{@num_format($discount_amount)}}
-                    @endif
-                    ')
+                        @if($discount_type == "percentage")
+                            {{@num_format($discount_amount)}} %
+                        @elseif($discount_type == "fixed")
+                            {{@num_format($discount_amount)}}
+                        @endif
+                        ')
                 ->editColumn('tax', function ($row) {
                     return $this->transactionUtil->num_f($row->item_tax, true)
                         . '<br>' . '<span data-orig-value="' . $row->item_tax . '" 
-                     class="tax" data-unit="' . $row->tax . '"><small>(' . $row->tax . ')</small></span>';
+                        class="tax" data-unit="' . $row->tax . '"><small>(' . $row->tax . ')</small></span>';
                 })
                 ->addColumn('payment_methods', function ($row) use ($payment_types) {
                     $methods = array_unique($row->transaction->payment_lines->pluck('method')->toArray());
@@ -2013,7 +2037,7 @@ class ReportController extends Controller
                     return $html;
                 })
                 ->editColumn('customer', '@if(!empty($supplier_business_name)) {{$supplier_business_name}},<br>@endif {{$customer}}')
-                ->rawColumns(['invoice_no', 'unit_sale_price', 'subtotal', 'sell_qty', 'discount_amount', 'unit_price', 'tax', 'customer', 'payment_methods'])
+                ->rawColumns(['tax3', 'tax2', 'invoice_no', 'unit_sale_price', 'subtotal', 'sell_qty', 'discount_amount', 'unit_price', 'tax', 'customer', 'payment_methods'])
                 ->make(true);
         }
 
