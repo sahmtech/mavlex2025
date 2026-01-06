@@ -1332,14 +1332,24 @@ class TransactionUtil extends Util
             }
 
             $lines = $transaction->sell_lines()->whereNull('parent_sell_line_id')->with($sell_line_relations)->get();
-
+            $line_taxes = [];
             foreach ($lines as $key => $value) {
                 if (! empty($value->sub_unit_id)) {
                     $formated_sell_line = $this->recalculateSellLineTotals($business_details->id, $value);
 
                     $lines[$key] = $formated_sell_line;
                 }
+
+                if (! empty($value->tobacco_tax) && $value->tobacco_tax > 0) {
+
+                    if (isset($line_taxes['tobacco_tax'])) {
+                        $line_taxes['tobacco_tax'] += ($value->tobacco_tax * $value->quantity);
+                    } else {
+                        $line_taxes['tobacco_tax'] = ($value->tobacco_tax * $value->quantity);
+                    }
+                }
             }
+            $output['line_taxes'] = $line_taxes;
 
             $output['item_discount_label'] = $il->common_settings['item_discount_label'] ?? '';
 
