@@ -48,6 +48,24 @@ class TransactionUtil extends Util
 
         $final_total = $uf_data ? $this->num_uf($input['final_total']) : $input['final_total'];
 
+        $payment_status = 'due';
+
+        if (isset($input['payment']) && is_array($input['payment'])) {
+            $total_paid = 0;
+            foreach ($input['payment'] as $payment) {
+                $amount = $uf_data ? $this->num_uf($payment['amount']) : $payment['amount'];
+                $total_paid += $amount;
+            }
+
+            $rounded_total_paid = round($total_paid, 2);
+            $rounded_final_total = round($final_total, 2);
+
+            if ($rounded_total_paid >= $rounded_final_total) {
+                $payment_status = 'paid';
+            } elseif ($rounded_total_paid > 0) {
+                $payment_status = 'partial';
+            }
+        }
         $pay_term_number = isset($input['pay_term_number']) ? $input['pay_term_number'] : null;
         $pay_term_type = isset($input['pay_term_type']) ? $input['pay_term_type'] : null;
 
@@ -62,6 +80,7 @@ class TransactionUtil extends Util
             'business_id' => $business_id,
             'location_id' => $input['location_id'],
             'type' => $sale_type,
+            'payment_status' => $payment_status,
             'status' => $input['status'],
             'sub_status' => ! empty($input['sub_status']) ? $input['sub_status'] : null,
             'contact_id' => $input['contact_id'],
