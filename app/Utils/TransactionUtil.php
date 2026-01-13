@@ -3134,9 +3134,9 @@ class TransactionUtil extends Util
         }
 
         $status = 'due';
-        if ($final_amount <= $total_paid) {
+        if (round($final_amount, 2) <= round($total_paid, 2)) {
             $status = 'paid';
-        } elseif ($total_paid > 0 && $final_amount > $total_paid) {
+        } elseif (round($total_paid, 2) > 0 && round($final_amount, 2) > round($total_paid, 2)) {
             $status = 'partial';
         }
 
