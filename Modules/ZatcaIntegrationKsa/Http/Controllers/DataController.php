@@ -48,9 +48,15 @@ class DataController extends ZatcaInvoiceController
     }
 
     public function after_sales($data)
-    {  
+    {
         $transaction_id = $data['transaction']['id'];
-        $business_id = request()->session()->get('user.business_id');
+        $business_id = $data['business_id'] ?? request()->session()->get('user.business_id');
+
+        if (empty($business_id)) {
+            \Log::error("Zatca error: Business ID not found in session or hook data.");
+            return;
+        }
+
         $buniess = $buniess = Business::find($business_id);
         $settings = json_decode($buniess->zatca_settings, true);
 
@@ -72,13 +78,14 @@ class DataController extends ZatcaInvoiceController
         }
     }
 
-    public function InvoiceQrCode($data){
+    public function InvoiceQrCode($data)
+    {
         $transaction = $data['transaction'];
         $business_id = request()->session()->get('user.business_id');
-        
+
         $document = ZatcaDocument::where('transaction_id', $transaction->id)->where('type', 'sale')->where('business_id', $business_id)->where('sent_to_zatca_status', 'success')->first();
-       
-        if($transaction->type == 'sell_return'){
+
+        if ($transaction->type == 'sell_return') {
             $document = ZatcaDocument::where('transaction_id', $transaction->id)->where('business_id', $business_id)->where('type', 'sale-return')->where('sent_to_zatca_status', 'success')->first();
         }
 
