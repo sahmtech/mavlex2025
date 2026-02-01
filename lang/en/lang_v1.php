@@ -1596,6 +1596,9 @@ return [
   'invoice_synced_to_zatca_cannot_be_deleted' => 'This invoice has been successfully synced to ZATCA and cannot be deleted.',
   'invoice_synced_to_zatca_cannot_be_edited' => 'This invoice has been successfully synced to ZATCA and cannot be edited.',
   'previous_returns' => 'Previous Returns',
-  'returned_on' => 'Returned On'
+  'returned_on' => 'Returned On',
+  'allergens' => 'Allergens',
+  'icon'=>'Icon'
+
 
 ];

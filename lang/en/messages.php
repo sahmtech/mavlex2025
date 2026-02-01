@@ -47,4 +47,5 @@ return [
     'print_detailed' => 'Print Detailed',
     'print_mini' => 'Print Mini',
     'opening' => 'opening',
+    'are_you_sure' => 'Are you sure?'
 ];
