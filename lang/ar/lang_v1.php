@@ -1442,7 +1442,9 @@ return [
     'enter_adjustment_title' => 'ادخل عنوان للتسوية',
     'enter_adjustment_amount' => 'ادخل قيمة للتسوية',
     'previous_returns' => 'لمردودات السابقة',
-    'returned_on' => 'تم الإرجاع في'
+    'returned_on' => 'تم الإرجاع في',
+    'allergens' => 'مسببات الحساسية',
+    'icon' => 'أيقونة'
 
 
 ];

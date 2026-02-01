@@ -92,4 +92,9 @@ return [
     'dashboard.data' => 'View Home data',
     'profit_loss_report.view' => 'View profit/loss report',
     'direct_sell.access' => 'Access sell',
+    "allergen.view" => "View Allergens",
+    "allergen.create" => "Create Allergens",
+    "allergen.edit" => "Edit Allergens",
+    "allergen.delete" => "Delete Allergens",
+
 ];

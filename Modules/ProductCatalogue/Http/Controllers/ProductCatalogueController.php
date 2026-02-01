@@ -55,7 +55,7 @@ class ProductCatalogueController extends Controller
                 $q->where('product_locations.location_id', $location_id);
             })
             ->ProductForSales()
-            ->with(['variations', 'variations.product_variation', 'category']);
+            ->with(['variations', 'variations.product_variation', 'category','allergens']);
         if ($is_show == 0) {
             $products = $products->havingRaw('
                     (SELECT CASE WHEN enable_stock = 0 THEN 1 
@@ -96,7 +96,7 @@ class ProductCatalogueController extends Controller
      */
     public function show($business_id, $id)
     {
-        $product = Product::with(['brand', 'unit', 'category', 'sub_category', 'product_tax', 'variations', 'variations.product_variation', 'variations.group_prices', 'variations.media', 'product_locations', 'warranty', 'variations.variation_location_details'])->where('business_id', $business_id)
+        $product = Product::with(['allergens','brand', 'unit', 'category', 'sub_category', 'product_tax', 'variations', 'variations.product_variation', 'variations.group_prices', 'variations.media', 'product_locations', 'warranty', 'variations.variation_location_details'])->where('business_id', $business_id)
             ->select('products.*', DB::raw('(SELECT SUM(variation_location_details.qty_available) FROM variation_location_details WHERE variation_location_details.product_id = products.id) as stock'))
             ->findOrFail($id);
 
