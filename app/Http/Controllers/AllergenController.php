@@ -8,6 +8,19 @@ use Yajra\DataTables\Facades\DataTables;
 
 class AllergenController extends Controller
 {
+
+    public function __construct()
+    {
+        $this->middleware(function ($request, $next) {
+            $enabled_modules = !empty(session('business.enabled_modules')) ? session('business.enabled_modules') : [];
+
+            if (!in_array('allergens', $enabled_modules)) {
+                abort(403, 'Allergens module is not enabled.');
+            }
+
+            return $next($request);
+        });
+    }
     /**
      * Display a listing of the resource.
      */
@@ -114,7 +127,7 @@ class AllergenController extends Controller
         if (! auth()->user()->can('allergen.delete')) {
             abort(403, 'Unauthorized action.');
         }
-        
+
         $allergen = Allergen::findOrFail($id);
 
         $allergen->delete();

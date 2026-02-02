@@ -25,7 +25,7 @@ class ModuleUtil extends Util
 
         if ($is_available) {
             //Check if installed by checking the system table {module_name}_version
-            $module_version = System::getProperty(strtolower($module_name).'_version');
+            $module_version = System::getProperty(strtolower($module_name) . '_version');
             if (empty($module_version)) {
                 return false;
             } else {
@@ -64,7 +64,7 @@ class ModuleUtil extends Util
             }
         }
 
-         // If specific module names are provided, filter the installed modules
+        // If specific module names are provided, filter the installed modules
         if (!empty($get_data_from_modules) && is_array($get_data_from_modules)) {
             $installed_modules = array_filter($installed_modules, function ($module) use ($get_data_from_modules) {
                 return in_array($module['name'], $get_data_from_modules);
@@ -74,7 +74,7 @@ class ModuleUtil extends Util
         $data = [];
         if (! empty($installed_modules)) {
             foreach ($installed_modules as $module) {
-                $class = 'Modules\\'.$module['name'].'\Http\Controllers\DataController';
+                $class = 'Modules\\' . $module['name'] . '\Http\Controllers\DataController';
 
                 if (class_exists($class)) {
                     $class_object = new $class();
@@ -106,8 +106,10 @@ class ModuleUtil extends Util
 
         $output = ! empty($is_installed) ? true : false;
 
-        if (in_array($module_name, $check_for_enable) &&
-            ! $this->isModuleEnabled(strtolower($module_name))) {
+        if (
+            in_array($module_name, $check_for_enable) &&
+            ! $this->isModuleEnabled(strtolower($module_name))
+        ) {
             $output = false;
         }
 
@@ -187,10 +189,12 @@ class ModuleUtil extends Util
      */
     public static function expiredResponse($redirect_url = null)
     {
-        $response_array = ['success' => 0,
+        $response_array = [
+            'success' => 0,
             'msg' => __(
                 'superadmin::lang.subscription_expired_toastr',
-                ['app_name' => config('app.name'),
+                [
+                    'app_name' => config('app.name'),
                     'subscribe_url' => action([\Modules\Superadmin\Http\Controllers\SubscriptionController::class, 'index']),
                 ]
             ),
@@ -216,7 +220,7 @@ class ModuleUtil extends Util
     public function countBusinessLocation($business_id)
     {
         $count = BusinessLocation::where('business_id', $business_id)
-                                ->count();
+            ->count();
 
         return $count;
     }
@@ -224,8 +228,8 @@ class ModuleUtil extends Util
     public function countUsers($business_id)
     {
         $count = User::where('business_id', $business_id)
-                                    ->where('allow_login', 1)
-                                    ->count();
+            ->where('allow_login', 1)
+            ->count();
 
         return $count;
     }
@@ -246,8 +250,8 @@ class ModuleUtil extends Util
     public function countInvoice($business_id, $start_dt, $end_dt)
     {
         $query = Transaction::where('business_id', $business_id)
-                            ->where('type', 'sell')
-                            ->where('status', 'final');
+            ->where('type', 'sell')
+            ->where('status', 'final');
 
         if (! empty($start_dt) && ! empty($start_dt)) {
             $query->whereBetween('created_at', [$start_dt, $end_dt]);
@@ -366,7 +370,8 @@ class ModuleUtil extends Util
         if ($type == 'locations') {
             if (request()->ajax()) {
                 if (request()->wantsJson()) {
-                    $response_array = ['success' => 0,
+                    $response_array = [
+                        'success' => 0,
                         'msg' => __('superadmin::lang.max_locations'),
                     ];
 
@@ -376,21 +381,24 @@ class ModuleUtil extends Util
                 }
             }
         } elseif ($type == 'users') {
-            $response_array = ['success' => 0,
+            $response_array = [
+                'success' => 0,
                 'msg' => __('superadmin::lang.max_users'),
             ];
 
             return redirect($redirect_url)
-                    ->with('status', $response_array);
+                ->with('status', $response_array);
         } elseif ($type == 'products') {
-            $response_array = ['success' => 0,
+            $response_array = [
+                'success' => 0,
                 'msg' => __('superadmin::lang.max_products'),
             ];
 
             return redirect($redirect_url)
-                    ->with('status', $response_array);
+                ->with('status', $response_array);
         } elseif ($type == 'invoices') {
-            $response_array = ['success' => 0,
+            $response_array = [
+                'success' => 0,
                 'msg' => __('superadmin::lang.max_invoices'),
             ];
 
@@ -440,7 +448,7 @@ class ModuleUtil extends Util
     public function getApiSettings($api_token)
     {
         $settings = \Modules\Ecommerce\Entities\EcomApiSetting::where('api_token', $api_token)
-                                ->first();
+            ->first();
 
         return $settings;
     }
@@ -454,7 +462,8 @@ class ModuleUtil extends Util
      */
     public function getModuleVersionInfo($module_name)
     {
-        $output = ['installed_version' => null,
+        $output = [
+            'installed_version' => null,
             'available_version' => null,
             'is_update_available' => null,
         ];
@@ -463,10 +472,10 @@ class ModuleUtil extends Util
 
         if ($is_available) {
             //Check if installed by checking the system table {module_name}_version
-            $module_version = System::getProperty(strtolower($module_name).'_version');
+            $module_version = System::getProperty(strtolower($module_name) . '_version');
 
             $output['installed_version'] = $module_version;
-            $output['available_version'] = config(strtolower($module_name).'.module_version');
+            $output['available_version'] = config(strtolower($module_name) . '.module_version');
 
             $output['is_update_available'] = Comparator::greaterThan($output['available_version'], $output['installed_version']);
         }
@@ -484,10 +493,12 @@ class ModuleUtil extends Util
             'stock_adjustment' => ['name' => __('stock_adjustment.stock_adjustment')],
             'expenses' => ['name' => __('expense.expenses')],
             'account' => ['name' => __('lang_v1.account')],
-            'tables' => ['name' => __('restaurant.tables'),
+            'tables' => [
+                'name' => __('restaurant.tables'),
                 'tooltip' => __('restaurant.tooltip_tables'),
             ],
-            'modifiers' => ['name' => __('restaurant.modifiers'),
+            'modifiers' => [
+                'name' => __('restaurant.modifiers'),
                 'tooltip' => __('restaurant.tooltip_modifiers'),
             ],
             'service_staff' => [
@@ -499,9 +510,12 @@ class ModuleUtil extends Util
                 'name' => __('restaurant.kitchen_for_restaurant'),
             ],
             'subscription' => ['name' => __('lang_v1.enable_subscription')],
-            'types_of_service' => ['name' => __('lang_v1.types_of_service'),
+            'types_of_service' => [
+                'name' => __('lang_v1.types_of_service'),
                 'tooltip' => __('lang_v1.types_of_service_help_long'),
             ],
+            'allergens' => ['name' => __('product.enable_allergens')],
+
         ];
     }
 

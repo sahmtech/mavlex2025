@@ -69,6 +69,8 @@ return [
     'select_all_that_apply' => 'Select all that apply',
     'select_allergens' => 'Select Allergens',
     'add_allergen' => 'Add Allergen',
+    'enable_allergens' => 'Enable Allergens'
+
 
 
 
