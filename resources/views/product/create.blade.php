@@ -7,9 +7,9 @@
     <section class="content-header">
         <h1 class="tw-text-xl md:tw-text-3xl tw-font-bold tw-text-black">@lang('product.add_new_product')</h1>
         <!-- <ol class="breadcrumb">
-                        <li><a href="#"><i class="fa fa-dashboard"></i> Level</a></li>
-                        <li class="active">Here</li>
-                    </ol> -->
+                            <li><a href="#"><i class="fa fa-dashboard"></i> Level</a></li>
+                            <li class="active">Here</li>
+                        </ol> -->
     </section>
 
     <!-- Main content -->
@@ -147,26 +147,24 @@
                         ) !!}
                     </div>
                 </div>
-
-                <div class="col-md-6">
-                    <div class="form-group allergens-select-wrapper">
-                        {!! Form::label('allergens', __('product.allergens') . ':') !!}
-                        {!! Form::select(
-                            'allergens[]',
-                            $allergens->pluck('name', 'id'),
-                            isset($duplicate_product) ? $duplicate_product->allergens->pluck('id')->toArray() : null,
-                            [
-                                'class' => 'form-control select2 allergens-select',
-                                'multiple' => 'multiple',
-                                'data-placeholder' => __('product.select_allergens'),
-                            ],
-                        ) !!}
-                        <small class="text-muted">{{ __('product.select_all_that_apply') }}</small>
+                @if (in_array('allergens', $enabled_modules))
+                    <div class="col-md-6">
+                        <div class="form-group allergens-select-wrapper">
+                            {!! Form::label('allergens', __('product.allergens') . ':') !!}
+                            {!! Form::select(
+                                'allergens[]',
+                                $allergens->pluck('name', 'id'),
+                                isset($duplicate_product) ? $duplicate_product->allergens->pluck('id')->toArray() : null,
+                                [
+                                    'class' => 'form-control select2 allergens-select',
+                                    'multiple' => 'multiple',
+                                    'data-placeholder' => __('product.select_allergens'),
+                                ],
+                            ) !!}
+                            <small class="text-muted">{{ __('product.select_all_that_apply') }}</small>
+                        </div>
                     </div>
-                </div>
-
-
-
+                @endif
                 @php
                     $default_location = null;
                     if (count($business_locations) == 1) {

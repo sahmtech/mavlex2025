@@ -53,6 +53,7 @@ return [
     'select_all_that_apply' => 'حدد كل ما ينطبق',
     'select_allergens' => 'اختر مسببات الحساسية',
     'add_allergen' => 'إضافة مسبب حساسية',
+    'enable_allergens' => 'تفعيل مسببات الحساسية'
 
 
 

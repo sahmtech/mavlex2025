@@ -147,7 +147,7 @@ class AdminSidebarMenu
             ) {
                 $menu->dropdown(
                     __('sale.products'),
-                    function ($sub) {
+                    function ($sub) use ($enabled_modules) {
                         if (auth()->user()->can('product.view')) {
                             $sub->url(
                                 action([\App\Http\Controllers\ProductController::class, 'index']),
@@ -225,7 +225,7 @@ class AdminSidebarMenu
                             );
                         }
 
-                        if (auth()->user()->can('allergen.view') || auth()->user()->can('allergen.create')) {
+                        if (in_array('allergens', $enabled_modules) && (auth()->user()->can('allergen.view') || auth()->user()->can('allergen.create'))) {
                             $sub->url(
                                 action([\App\Http\Controllers\AllergenController::class, 'index']),
                                 __('lang_v1.allergens'),
