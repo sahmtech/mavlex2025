@@ -280,7 +280,7 @@ $(document).ready(function () {
                         //Pre select lot number only if the searched term is same as the lot number
                         var purchase_line_id =
                             ui.item.purchase_line_id &&
-                            searched_term == ui.item.lot_number
+                                searched_term == ui.item.lot_number
                                 ? ui.item.purchase_line_id
                                 : null;
                         pos_product_row(ui.item.variation_id, purchase_line_id);
@@ -290,94 +290,94 @@ $(document).ready(function () {
                 },
             })
             .autocomplete("instance")._renderItem = function (ul, item) {
-            var is_overselling_allowed = false;
-            if ($("input#is_overselling_allowed").length) {
-                is_overselling_allowed = true;
-            }
-
-            var for_so = false;
-            if (
-                $("#sale_type").length &&
-                $("#sale_type").val() == "sales_order"
-            ) {
-                for_so = true;
-            }
-            var is_draft = false;
-            if (
-                $("input#status") &&
-                ($("input#status").val() == "quotation" ||
-                    $("input#status").val() == "draft")
-            ) {
-                var is_draft = true;
-            }
-
-            if (
-                item.enable_stock == 1 &&
-                item.qty_available <= 0 &&
-                !is_overselling_allowed &&
-                !for_so &&
-                !is_draft
-            ) {
-                var string = '<li class="ui-state-disabled">' + item.name;
-                if (item.type == "variable") {
-                    string += "-" + item.variation;
-                }
-                var selling_price = item.selling_price;
-                if (item.variation_group_price) {
-                    selling_price = item.variation_group_price;
-                }
-                string +=
-                    " (" +
-                    item.sub_sku +
-                    ")" +
-                    "<br> Price: " +
-                    __currency_trans_from_en(
-                        selling_price,
-                        false,
-                        false,
-                        __currency_precision,
-                        true
-                    ) +
-                    " (Out of stock) </li>";
-                return $(string).appendTo(ul);
-            } else {
-                var string = "<div>" + item.name;
-                if (item.type == "variable") {
-                    string += "-" + item.variation;
+                var is_overselling_allowed = false;
+                if ($("input#is_overselling_allowed").length) {
+                    is_overselling_allowed = true;
                 }
 
-                var selling_price = item.selling_price;
-                if (item.variation_group_price) {
-                    selling_price = item.variation_group_price;
+                var for_so = false;
+                if (
+                    $("#sale_type").length &&
+                    $("#sale_type").val() == "sales_order"
+                ) {
+                    for_so = true;
+                }
+                var is_draft = false;
+                if (
+                    $("input#status") &&
+                    ($("input#status").val() == "quotation" ||
+                        $("input#status").val() == "draft")
+                ) {
+                    var is_draft = true;
                 }
 
-                string +=
-                    " (" +
-                    item.sub_sku +
-                    ")" +
-                    "<br> Price: " +
-                    __currency_trans_from_en(
-                        selling_price,
-                        false,
-                        false,
-                        __currency_precision,
-                        true
-                    );
-                if (item.enable_stock == 1) {
-                    var qty_available = __currency_trans_from_en(
-                        item.qty_available,
-                        false,
-                        false,
-                        __currency_precision,
-                        true
-                    );
-                    string += " - " + qty_available + item.unit;
-                }
-                string += "</div>";
+                if (
+                    item.enable_stock == 1 &&
+                    item.qty_available <= 0 &&
+                    !is_overselling_allowed &&
+                    !for_so &&
+                    !is_draft
+                ) {
+                    var string = '<li class="ui-state-disabled">' + item.name;
+                    if (item.type == "variable") {
+                        string += "-" + item.variation;
+                    }
+                    var selling_price = item.selling_price;
+                    if (item.variation_group_price) {
+                        selling_price = item.variation_group_price;
+                    }
+                    string +=
+                        " (" +
+                        item.sub_sku +
+                        ")" +
+                        "<br> Price: " +
+                        __currency_trans_from_en(
+                            selling_price,
+                            false,
+                            false,
+                            __currency_precision,
+                            true
+                        ) +
+                        " (Out of stock) </li>";
+                    return $(string).appendTo(ul);
+                } else {
+                    var string = "<div>" + item.name;
+                    if (item.type == "variable") {
+                        string += "-" + item.variation;
+                    }
 
-                return $("<li>").append(string).appendTo(ul);
-            }
-        };
+                    var selling_price = item.selling_price;
+                    if (item.variation_group_price) {
+                        selling_price = item.variation_group_price;
+                    }
+
+                    string +=
+                        " (" +
+                        item.sub_sku +
+                        ")" +
+                        "<br> Price: " +
+                        __currency_trans_from_en(
+                            selling_price,
+                            false,
+                            false,
+                            __currency_precision,
+                            true
+                        );
+                    if (item.enable_stock == 1) {
+                        var qty_available = __currency_trans_from_en(
+                            item.qty_available,
+                            false,
+                            false,
+                            __currency_precision,
+                            true
+                        );
+                        string += " - " + qty_available + item.unit;
+                    }
+                    string += "</div>";
+
+                    return $("<li>").append(string).appendTo(ul);
+                }
+            };
     }
 
     //Update line total and check for quantity not greater than max quantity
@@ -553,7 +553,7 @@ $(document).ready(function () {
         }
     );
 
-    
+
     //Change max quantity rule if lot number changes
     $("table#pos_table tbody").on("change", "select.lot_number", function () {
         var qty_element = $(this).closest("tr").find("input.pos_quantity");
@@ -1015,8 +1015,8 @@ $(document).ready(function () {
                         is_msp_valid = false;
                         error_msg_td.append(
                             '<label class="error">' +
-                                $(this).data("msg-min-value") +
-                                "</label>"
+                            $(this).data("msg-min-value") +
+                            "</label>"
                         );
                     } else {
                         error_msg_td.find("label.error").remove();
@@ -1310,8 +1310,8 @@ $(document).ready(function () {
                     is_msp_valid = false;
                     error_msg_td.append(
                         '<label class="error">' +
-                            $(this).data("msg-min-value") +
-                            "</label>"
+                        $(this).data("msg-min-value") +
+                        "</label>"
                     );
                 } else {
                     error_msg_td.find("label.error").remove();
@@ -2173,76 +2173,76 @@ function pos_each_row(row_obj) {
 
     ////////////////////////
     if (tax_rate > 0 || tax_2_rate > 0) {
-    if (tax_2_rate > 0) {
-        // tax_1 greated than tax_2
-        if (tax_rate > tax_2_rate) {
-            // add tax_1 first
-            if (min_amount > 0 && discounted_unit_price < min_amount) {
-                item_tax += min_amount;
-            } else {
-                console.log('*******2************');
-                 console.log(item_tax+'     '+item_tax_2);
-                var div = Decimal.div(tax_rate, 100).toNumber();
-                item_tax += Decimal.mul(div, discounted_unit_price).toNumber();
+        if (tax_2_rate > 0) {
+            // tax_1 greated than tax_2
+            if (tax_rate > tax_2_rate) {
+                // add tax_1 first
+                if (min_amount > 0 && discounted_unit_price < min_amount) {
+                    item_tax += min_amount;
+                } else {
+                    console.log('*******2************');
+                    console.log(item_tax + '     ' + item_tax_2);
+                    var div = Decimal.div(tax_rate, 100).toNumber();
+                    item_tax += Decimal.mul(div, discounted_unit_price).toNumber();
+                }
+                // add tax_2
+                if (
+                    min_amount_2 > 0 &&
+                    discounted_unit_price + item_tax < min_amount_2
+                ) {
+                    item_tax_2 += min_amount_2;
+                } else {
+                    var div = Decimal.div(tax_2_rate, 100).toNumber();
+                    item_tax_2 += Decimal.mul(
+                        div,
+                        discounted_unit_price + item_tax
+                    ).toNumber();
+                }
             }
-            // add tax_2
-            if (
-                min_amount_2 > 0 &&
-                discounted_unit_price + item_tax < min_amount_2
-            ) {
-                item_tax_2 += min_amount_2;
-            } else {
-                var div = Decimal.div(tax_2_rate, 100).toNumber();
-                item_tax_2 += Decimal.mul(
-                    div,
-                    discounted_unit_price + item_tax
-                ).toNumber();
+            // tax_2 is greater
+            else {
+                // add tax_2
+                if (min_amount_2 > 0 && discounted_unit_price < min_amount_2) {
+                    item_tax_2 += min_amount_2;
+                } else {
+                    var div = Decimal.div(tax_2_rate, 100).toNumber();
+                    item_tax_2 += Decimal.mul(
+                        div,
+                        discounted_unit_price
+                    ).toNumber();
+                }
+
+                // add tax_1 first
+                if (
+                    min_amount > 0 &&
+                    item_tax_2 + discounted_unit_price < min_amount
+                ) {
+                    item_tax += min_amount;
+                } else {
+                    var div = Decimal.div(tax_rate, 100).toNumber();
+                    item_tax += Decimal.mul(
+                        div,
+                        item_tax_2 + discounted_unit_price
+                    ).toNumber();
+                }
+
+                return res;
             }
         }
-        // tax_2 is greater
+        // if there is only one tax rate
         else {
-            // add tax_2
-            if (min_amount_2 > 0 && discounted_unit_price < min_amount_2) {
-                item_tax_2 += min_amount_2;
-            } else {
-                var div = Decimal.div(tax_2_rate, 100).toNumber();
-                item_tax_2 += Decimal.mul(
-                    div,
-                    discounted_unit_price
-                ).toNumber();
-            }
-
-            // add tax_1 first
-            if (
-                min_amount > 0 &&
-                item_tax_2 + discounted_unit_price < min_amount
-            ) {
-                item_tax += min_amount;
+            if (min_amount > 0 && discounted_unit_price < min_amount) {
+                item_tax = min_amount;
             } else {
                 var div = Decimal.div(tax_rate, 100).toNumber();
-                item_tax += Decimal.mul(
-                    div,
-                    item_tax_2 + discounted_unit_price
-                ).toNumber();
+                item_tax = Decimal.mul(div, discounted_unit_price).toNumber();
             }
-
-            return res;
         }
     }
-    // if there is only one tax rate
-    else {
-        if (min_amount > 0 && discounted_unit_price < min_amount) {
-            item_tax = min_amount;
-        } else {
-            var div = Decimal.div(tax_rate, 100).toNumber();
-            item_tax = Decimal.mul(div, discounted_unit_price).toNumber();
-        }
-    }
-}
     ////////////////////////
-console.log('*********************fdgdfgdfgdf*');
-console.log(item_tax);
-console.log('*********************fdgdfgdfgdf*');
+    console.log('*********************fdgdfgdfgdf*');
+    console.log(item_tax);
+    console.log('*********************fdgdfgdfgdf*');
 
     __write_number(row_obj.find("input.item_tax"), item_tax);
 
@@ -2422,99 +2422,23 @@ function get_subtotal() {
 //     store_footer_data();
 // }
 function calculate_billing_details(total_after_tax) {
-    var base_total = total_after_tax;
+    var base_total = total_after_tax; // This is now (Price - Discount) + VAT
 
-    // Add shipping charges.
     var shipping_charges = __read_number($("input#shipping_charges")) || 0;
+    var additional_expense = 0; 
 
-    // Add additional expenses
-    var additional_expense = 0;
-    for (let i = 1; i <= 4; i++) {
-        additional_expense +=
-            __read_number($("input#additional_expense_value_" + i)) || 0;
-    }
+    var discount = 0; 
 
-    // Add packing charge
-    var packing_charge = 0;
-    if (
-        $("#types_of_service_id").length > 0 &&
-        $("#types_of_service_id").val()
-    ) {
-        packing_charge = __calculate_amount(
-            $("#packing_charge_type").val(),
-            __read_number($("input#packing_charge")),
-            base_total
-        );
-        $("#packing_charge_text").text(
-            __currency_trans_from_en(packing_charge, false)
-        );
-        update_packing_charge_input();
-    }
+    var total_payable = base_total + shipping_charges; 
 
-    // Calculate discount
-    var discount = pos_discount(base_total);
+    __write_number($("input#final_total_input"), total_payable);
+    $("span#total_payable").text(__currency_trans_from_en(total_payable, false));
 
-    // Reward point
-    if ($("#reward_point_enabled").length) {
-        var total_customer_reward =
-            __read_number($("#rp_redeemed_amount")) || 0;
-        discount = parseFloat(discount) + parseFloat(total_customer_reward);
-        if ($('input[name="is_direct_sale"]').length <= 0) {
-            $("span#total_discount").text(
-                __currency_trans_from_en(discount, false)
-            );
-        }
-    }
-
-    // Calculate total payable before rounding
-    var total_payable =
-        base_total -
-        discount +
-        shipping_charges +
-        packing_charge +
-        additional_expense;
-
-    // Rounding logic
-    var rounding_multiple = $("#amount_rounding_method").val()
-        ? parseFloat($("#amount_rounding_method").val())
-        : 0;
-    var round_off_data = __round(total_payable, rounding_multiple);
-    var total_payable_rounded = round_off_data.number;
-    var round_off_amount = round_off_data.diff;
-
-    // Set round off UI
-    $("span#round_off_text").text(
-        __currency_trans_from_en(round_off_amount, false)
-    );
-    $("input#round_off_amount").val(round_off_amount);
-
-    // Set final total in input/field
-    __write_number($("input#final_total_input"), total_payable_rounded);
-
-    // Currency/exchange rate logic
-    var curr_exchange_rate = 1;
-    if ($("#exchange_rate").length > 0 && $("#exchange_rate").val()) {
-        curr_exchange_rate = __read_number($("#exchange_rate"));
-    }
-    var shown_total = total_payable_rounded * curr_exchange_rate;
-    $("span#total_payable").text(__currency_trans_from_en(shown_total, false));
-    $("span.total_payable_span").text(
-        __currency_trans_from_en(total_payable_rounded, true)
-    );
-
-    // Set payment amount on new invoice
-    if (
-        $("form#edit_pos_sell_form").length == 0 &&
-        $("form#edit_sell_form").length == 0
-    ) {
-        __write_number($(".payment-amount").first(), total_payable_rounded);
-    }
-
-    $(document).trigger("invoice_total_calculated");
-
+    console.log("Final Payable (Price - Discount + VAT):", total_payable);
+    
     calculate_balance_due();
-    store_footer_data();
 }
+
 
 function pos_discount(total_amount) {
     var calculation_type = $("#discount_type").val();
@@ -2592,107 +2516,48 @@ function calculateInvoiceTotals() {
     let total_before_tax = 0;
     let total_tax = 0;
     let total_after_tax = 0;
-
-    let tax_totals = {}; // {tax_id: {name, percent, total}}
+    let tax_totals = {};
 
     $("#pos_table tbody tr.product_row").each(function () {
-   let unit_price = parseFloat(
-    ($(this).find(".pos_unit_price").val() || "0").replace(/,/g, '')
-) || 0;
-
-let quantity = parseFloat(
-    ($(this).find(".pos_quantity").val() || "0").replace(/,/g, '')
-) || 0;     
-        // Tax1 info
-        let $tax_select = $(this).find(".tax_id");
-        let tax_id = $tax_select.val();
-        let tax_name = $tax_select.find("option:selected").text().trim();
-        let tax_percent =
-            parseFloat($tax_select.find("option:selected").data("rate")) || 0;
-        let tax_min =
-            parseFloat(
-                $tax_select.find("option:selected").data("min_amount")
-            ) || 0;
-
-        // Tax2 info
-        let $tax2_select = $(this).find(".tax_id_2");
-        let tax2_id = $tax2_select.val();
-        let tax2_name = $tax2_select.find("option:selected").text().trim();
-        let tax2_percent =
-            parseFloat($tax2_select.find("option:selected").data("rate")) || 0;
-        let tax2_min =
-            parseFloat(
-                $tax2_select.find("option:selected").data("min_amount")
-            ) || 0;
-
-        // -------- 1. Calculate on one unit -----------
-        let row_before_tax = unit_price;
-
-        // Tax calculations per 1 unit
-        let row_total_with_taxes = __add_percent(
-            row_before_tax,
-            tax_percent,
-            tax_min,
-            tax2_percent,
-            tax2_min
-        );
-        let amount_after_tax1 = __add_percent(
-            row_before_tax,
-            tax_percent,
-            tax_min,
-            0,
-            0
-        );
-        let tax1_amount = amount_after_tax1 - row_before_tax;
-        let amount_after_both = row_total_with_taxes;
-        let tax2_amount = amount_after_both - amount_after_tax1;
-
-        // -------- 2. Multiply by quantity -----------
-        total_before_tax += row_before_tax * quantity;
-        total_after_tax += row_total_with_taxes * quantity;
-        total_tax += (tax1_amount + tax2_amount) * quantity;
-
-        // -------- 3. Aggregate tax totals by ID -----
-        if (tax_id) {
-            if (!tax_totals[tax_id])
-                tax_totals[tax_id] = {
-                    name: tax_name,
-                    percent: tax_percent,
-                    total: 0,
-                };
-            tax_totals[tax_id].total += tax1_amount * quantity;
+        
+        let unit_price = parseFloat(($(this).find(".pos_unit_price").val() || "0").replace(/,/g, '')) || 0;
+        let quantity = parseFloat(($(this).find(".pos_quantity").val() || "0").replace(/,/g, '')) || 0;
+        
+        let discount_type = $(this).find("select.row_discount_type").val();
+        let discount_amount = __read_number($(this).find("input.row_discount_amount")) || 0;
+        
+        let row_discount = 0;
+        if (discount_type === "fixed") {
+            row_discount = discount_amount;
+        } else {
+            row_discount = (unit_price * discount_amount) / 100;
         }
-        if (tax2_id) {
-            if (!tax_totals[tax2_id])
-                tax_totals[tax2_id] = {
-                    name: tax2_name,
-                    percent: tax2_percent,
-                    total: 0,
-                };
-            tax_totals[tax2_id].total += tax2_amount * quantity;
+
+        let price_after_discount = unit_price - row_discount;
+
+        let $tax_select = $(this).find(".tax_id");
+        let tax_percent = parseFloat($tax_select.find("option:selected").data("rate")) || 0;
+        let tax_min = parseFloat($tax_select.find("option:selected").data("min_amount")) || 0;
+
+        let row_total_with_taxes = __add_percent(price_after_discount, tax_percent, tax_min, 0, 0);
+        let row_tax = row_total_with_taxes - price_after_discount;
+
+        
+        total_before_tax += price_after_discount * quantity;
+        total_tax += row_tax * quantity;
+        total_after_tax += row_total_with_taxes * quantity;
+
+        let tax_id = $tax_select.val();
+        if (tax_id) {
+            if (!tax_totals[tax_id]) tax_totals[tax_id] = { name: $tax_select.find("option:selected").text().trim(), total: 0 };
+            tax_totals[tax_id].total += row_tax * quantity;
         }
     });
 
-    // Update totals in DOM
+    
     $("#total_before_tax").text(total_before_tax.toFixed(2));
     $("#order_tax").text(total_tax.toFixed(2));
     $("#total_after_tax").text(total_after_tax.toFixed(2));
-
-    // Show per-tax summary
-    let breakdownRows = "";
-    Object.values(tax_totals)
-        .reverse()
-        .forEach((t) => {
-            breakdownRows += `<tr>
-            <td><b>${t.name}:</b></td>
-            <td><span class="display_currency">${t.total.toFixed(2)}</span></td>
-        </tr>`;
-        });
-    $("#per_tax_breakdown").html(breakdownRows);
-
-    if (typeof __currency_convert_recursively === "function") {
-        __currency_convert_recursively($(".display_currency"));
-    }
 
     calculate_billing_details(total_after_tax);
 }
@@ -2896,7 +2761,7 @@ function set_default_customer() {
     var default_customer_address = $("#default_customer_address").val();
     var exists = default_customer_id
         ? $("select#customer_id option[value=" + default_customer_id + "]")
-              .length
+            .length
         : 0;
     if (exists == 0 && default_customer_id) {
         $("select#customer_id").append(
@@ -3431,8 +3296,8 @@ $(document).on("click", ".service_modal_btn", function (e) {
 $(document).on("change", ".payment_types_dropdown", function (e) {
     var default_accounts = $("select#select_location_id").length
         ? $("select#select_location_id")
-              .find(":selected")
-              .data("default_payment_accounts")
+            .find(":selected")
+            .data("default_payment_accounts")
         : $("#location_id").data("default_payment_accounts");
     var payment_type = $(this).val();
     var payment_row = $(this).closest(".payment_row");
@@ -4388,58 +4253,58 @@ function updateCurrencyValues() {
         $(".total_payable_target")
             .text(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        parseCurrency($(".total_payable_span").text()) /
-                            exchangeRate,
-                        false,
-                        false
-                    )
+                " " +
+                __currency_trans_from_en(
+                    parseCurrency($(".total_payable_span").text()) /
+                    exchangeRate,
+                    false,
+                    false
+                )
             )
             .show();
         $(".total_paying_target")
             .text(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        parseCurrency($(".total_paying").text()) / exchangeRate,
-                        false,
-                        false
-                    )
+                " " +
+                __currency_trans_from_en(
+                    parseCurrency($(".total_paying").text()) / exchangeRate,
+                    false,
+                    false
+                )
             )
             .show();
         $(".change_return_target")
             .text(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        parseCurrency($(".change_return_span").text()) /
-                            exchangeRate,
-                        false,
-                        false
-                    )
+                " " +
+                __currency_trans_from_en(
+                    parseCurrency($(".change_return_span").text()) /
+                    exchangeRate,
+                    false,
+                    false
+                )
             )
             .show();
         $(".balance_due_target")
             .text(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        parseCurrency($(".balance_due").text()) / exchangeRate,
-                        false,
-                        false
-                    )
+                " " +
+                __currency_trans_from_en(
+                    parseCurrency($(".balance_due").text()) / exchangeRate,
+                    false,
+                    false
+                )
             )
             .show();
         $(".sale_amount_target")
             .text(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        parseCurrency($(".sale_amount").text()) / exchangeRate,
-                        false,
-                        false
-                    )
+                " " +
+                __currency_trans_from_en(
+                    parseCurrency($(".sale_amount").text()) / exchangeRate,
+                    false,
+                    false
+                )
             )
             .show();
     } else {
@@ -4459,13 +4324,13 @@ function updateCurrencyValues() {
         if (exchangeRate > 0) {
             targetAmountField.val(
                 currencyCode +
-                    " " +
-                    __currency_trans_from_en(
-                        baseAmount / exchangeRate,
-                        false,
-                        false,
-                        2
-                    )
+                " " +
+                __currency_trans_from_en(
+                    baseAmount / exchangeRate,
+                    false,
+                    false,
+                    2
+                )
             );
             targetAmountField.show();
         } else {
