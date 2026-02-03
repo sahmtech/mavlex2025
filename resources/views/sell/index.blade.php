@@ -343,9 +343,14 @@
                             data[r].total_paid).data('orig-value')) : 0;
                         footer_total_remaining += $(data[r].total_remaining).data('orig-value') ?
                             parseFloat($(data[r].total_remaining).data('orig-value')) : 0;
-                        footer_total_sell_return_due += $(data[r].return_due).find('.sell_return_due')
-                            .data('orig-value') ? parseFloat($(data[r].return_due).find(
-                                '.sell_return_due').data('orig-value')) : 0;
+                        let return_html = data[r].return_due;
+                        let return_val = $(return_html).closest('.sell_return_due').data(
+                                'orig-value') ||
+                            $(return_html).find('.sell_return_due').data('orig-value') ||
+                            0;
+
+                        footer_total_sell_return_due += parseFloat(return_val);
+
                     }
 
                     $('.footer_total_sell_return_due').html(__currency_trans_from_en(
