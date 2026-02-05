@@ -52,14 +52,15 @@
 
 <!-- Invoice Title and Number -->
 <div class="row" style="text-align: center;">
-    <div class="col-xs-6">
-        <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
-            <div style="font-size: 18px; font-weight: bold;">
-                     TAX INVOICE<br>
-                    <span style="direction: rtl;">فاتورة ضريبية</span>
+   <div class="col-xs-6">
+            <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 10px;">
+                <div style="font-size: 18px; font-weight: bold;">
+                    @if (!empty($receipt_details->invoice_heading))
+                        <br /><span class="sub-headings">{!! preg_replace('/(\p{Arabic})\s+(?=[a-zA-Z])/u', '$1<br />', $receipt_details->invoice_heading) !!}</span>
+                    @endif
+                </div>
             </div>
         </div>
-    </div>
     <div class="col-xs-6">
         <div style="display: flex; justify-content: center; align-items: center; margin-bottom: 19px;">
             <div class="print-red" style="font-size: 18px; font-weight: bold; ">
