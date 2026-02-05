@@ -47,5 +47,6 @@ return [
     'print_detailed' => 'Print Detailed',
     'print_mini' => 'Print Mini',
     'opening' => 'opening',
-    'are_you_sure' => 'Are you sure?'
+    'are_you_sure' => 'Are you sure?',
+    'total_return_excess_error' => 'Total return value cannot exceed the original invoice value of :amount',
 ];

@@ -376,53 +376,69 @@ class SellReturnController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        // try {
-        $input = $request->except('_token');
+        try {
+            $input = $request->except('_token');
 
-        if (!empty($input['products'])) {
-            $business_id = $request->session()->get('user.business_id');
+            if (!empty($input['products'])) {
+                $business_id = $request->session()->get('user.business_id');
 
-            //Check if subscribed or not
-            if (!$this->moduleUtil->isSubscribed($business_id)) {
-                return $this->moduleUtil->expiredResponse(action([\App\Http\Controllers\SellReturnController::class, 'index']));
+                if (!$this->moduleUtil->isSubscribed($business_id)) {
+                    return $this->moduleUtil->expiredResponse(action([\App\Http\Controllers\SellReturnController::class, 'index']));
+                }
+
+                $productUtil = new \App\Utils\ProductUtil();
+                $discount = [
+                    'discount_type' => $input['discount_type'] ?? 'fixed',
+                    'discount_amount' => $input['discount_amount'] ?? 0,
+                ];
+
+                $invoice_total = $productUtil->calculateInvoiceTotal($input['products'], $input['tax_id'] ?? null, $discount);
+                $current_return_amount = $invoice_total['final_total'];
+
+                $sell_id = $input['transaction_id'];
+                $sell = \App\Transaction::where('business_id', $business_id)
+                    ->where('type', 'sell')
+                    ->findOrFail($sell_id);
+
+                $already_returned_amount = \App\Transaction::where('business_id', $business_id)
+                    ->where('return_parent_id', $sell_id)
+                    ->where('type', 'sell_return')
+                    ->sum('final_total');
+
+                if (($current_return_amount + $already_returned_amount) > ($sell->final_total + 0.001)) {
+                    return [
+                        'success' => 0,
+                        'msg' => __('messages.total_return_excess_error', ['amount' => $this->transactionUtil->num_f($sell->final_total)]),
+                    ];
+                }
+
+                $user_id = $request->session()->get('user.id');
+
+                DB::beginTransaction();
+
+                $sell_return = $this->transactionUtil->addSellReturn($input, $business_id, $user_id, true, true);
+
+                $receipt = $this->receiptContent($business_id, $sell_return->location_id, $sell_return->id);
+
+                $this->moduleUtil->getModuleData('after_sales_return', ['transaction' => $sell_return]);
+
+                DB::commit();
+
+                return [
+                    'success' => 1,
+                    'msg' => __('lang_v1.success'),
+                    'receipt' => $receipt,
+                ];
             }
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
-            $user_id = $request->session()->get('user.id');
-
-            DB::beginTransaction();
-
-            $sell_return = $this->transactionUtil->addSellReturn($input, $business_id, $user_id, true, true);
-
-            // dd($sell_return);
-            $receipt = $this->receiptContent($business_id, $sell_return->location_id, $sell_return->id);
-
-            // for zatca invoice response
-            $this->moduleUtil->getModuleData('after_sales_return', ['transaction' => $sell_return]);
-
-            DB::commit();
-
-            $output = [
-                'success' => 1,
-                'msg' => __('lang_v1.success'),
-                'receipt' => $receipt,
+            return [
+                'success' => 0,
+                'msg' => __('messages.something_went_wrong'),
             ];
         }
-        // } catch (\Exception $e) {
-        //     DB::rollBack();
-
-        //     if (get_class($e) == \App\Exceptions\PurchaseSellMismatch::class) {
-        //         $msg = $e->getMessage();
-        //     } else {
-        //         \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
-        //         $msg = __('messages.something_went_wrong');
-        //     }
-
-        //     $output = ['success' => 0,
-        //         'msg' => $msg,
-        //     ];
-        // }
-
-        return $output;
     }
 
     /**
