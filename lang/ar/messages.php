@@ -33,6 +33,6 @@ return [
   "transaction_edit_not_allowed" => "لا يُسمح بإصدار المعاملة بعد days: الأيام.",
   'activate' => 'تنشيط',
   'deactivate' => 'إلغاء تنشيط',
-  'are_you_sure' => 'هل انت متأكد؟'
-
+  'are_you_sure' => 'هل انت متأكد؟',
+  'total_return_excess_error' => 'إجمالي قيمة المرتجع لا يمكن أن تتجاوز قيمة الفاتورة الأصلية البالغة :amount',
 ];
