@@ -1492,7 +1492,10 @@ private function sendToZatca($xmlData)
 
       // Attach XML if submitted to ZATCA
       if ($invoice->sent_to_zatca) {
-          $temp     = \tmpfile();
+        //   $temp     = \tmpfile();
+
+        $tmpfile_path = tempnam(sys_get_temp_dir(), 'zatca_');
+    $temp = fopen($tmpfile_path, 'w+');
           fwrite($temp, base64_decode($invoice->xml));
           fseek($temp, 0);
           $tmpfile_path = stream_get_meta_data($temp)['uri'];
