@@ -44,9 +44,8 @@
             text-align: right;
         }
 
-        /* تنسيق اللوجو */
         .invoice-logo {
-            width: 160px; /* تم تكبير اللوجو */
+            width: 160px; 
             height: auto;
             max-height: 160px;
             display: block;
@@ -54,7 +53,6 @@
             background-color: #fff;
         }
 
-        /* تنسيق الموقع الإلكتروني باللون الأسود */
         .website-link {
             color: #000 !important;
             text-decoration: none;
@@ -62,7 +60,9 @@
         }
 
         .text-blue {
-            color: #22489B;
+            /* color: #22489B; */
+               color: #000 !important;
+         
         }
 
         .font-14 { font-size: 14px; }
@@ -79,10 +79,8 @@
 </head>
 
 <body>
-    {{-- الهيدر العلوي --}}
     <table class="table">
         <tr>
-            {{-- معلومات البائع - يمين --}}
             <td width="35%" class="rtl">
                 <div class="text-blue">
                     <strong class="font-18">{!! $receipt_details->display_name !!}</strong>
@@ -100,7 +98,6 @@
                             </a>
                         @endif
 
-                        {{-- الحقول المخصصة للموقع --}}
                         @if(!empty($receipt_details->custom__fields))
                             @foreach($receipt_details->custom__fields as $label => $value)
                                 <br><strong>{{ $label }}:</strong> {{ $value }}
@@ -110,14 +107,12 @@
                 </div>
             </td>
 
-            {{-- اللوجو - منتصف --}}
             <td width="30%" class="center">
                 @if (!empty($receipt_details->logo))
                     <img src="{{ $receipt_details->logo }}" class="invoice-logo" alt="Logo">
                 @endif
             </td>
 
-            {{-- كود QR - يسار --}}
             <td width="35%" class="center">
                 @if (!empty($zatca_qr_code))
                     <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG($zatca_qr_code, 'QRCODE', 2.0, 2.0, [0,0,0]) }}">
@@ -128,7 +123,6 @@
 
     <h3 class="center">Tax Invoice / فاتورة ضريبية</h3>
 
-    {{-- معلومات الفاتورة العامة --}}
     <table class="table table-bordered">
         <tr class="gray-bg">
             <td width="25%"><strong>Invoice Number<br>رقم الفاتورة</strong></td>
@@ -148,7 +142,6 @@
         </tr>
     </table>
 
-    {{-- البائع والمشتري --}}
     <table class="table table-bordered">
         <tr class="gray-bg">
             <td width="50%"><strong>Seller / البائع</strong></td>
@@ -171,8 +164,7 @@
         </tr>
     </table>
 
-    {{-- جدول الأصناف --}}
-    <table class="table table-bordered">
+   <table class="table table-bordered">
         <tr class="gray-bg">
             <th>Seq</th>
             <th>Description / البيان</th>
@@ -210,7 +202,6 @@
         @endforeach
     </table>
 
-    {{-- الملخص المالي --}}
     <div style="width: 45%; float: left;">
         <table class="table table-bordered">
             <tr>
@@ -242,8 +233,7 @@
         </table>
     </div>
 
-    {{-- التفقيط العربي والانجليزي --}}
-    <div style="width: 50%; float: right; font-size: 9pt;">
+   <div style="width: 50%; float: right; font-size: 9pt;">
         <p><strong>Invoiced Amount:</strong> {{ $transactionUtil->numberToCurrencyWords($receipt_details->total_unformatted, 'riyal', 'halala', 'en') }}</p>
         <p><strong>مبلغ الفاتورة:</strong> {{ $transactionUtil->numberToCurrencyWords($receipt_details->total_unformatted, 'ريالًا و', ' هللة فقط', 'ar') }}</p>
         
