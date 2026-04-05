@@ -74,7 +74,7 @@ class TransactionUtil extends Util
             'tax_id' => ! empty($input['tax_rate_id']) ? $input['tax_rate_id'] : null,
             'discount_type' => ! empty($input['discount_type']) ? $input['discount_type'] : null,
             'discount_amount' => $uf_data ? $this->num_uf($input['discount_amount']) : $input['discount_amount'],
-            'tax_id' => $invoice_total['tax_12_id'],
+            'tax_id' => isset($invoice_total['tax_12_id']) ? $invoice_total['tax_12_id'] : (!empty($input['tax_rate_id']) ? $input['tax_rate_id'] : null),
             'tax_amount' => $invoice_total['tax'],
             'final_total' => $final_total,
             'additional_notes' => ! empty($input['sale_note']) ? $input['sale_note'] : null,
@@ -1433,7 +1433,11 @@ class TransactionUtil extends Util
                     }
                 }
 
-                $total_line_taxes += ($line['tax_unformatted'] * $line['quantity']);
+                $quantity = str_replace(',', '', $line['quantity']);
+                $tax_unformatted = str_replace(',', '', $line['tax_unformatted']);
+
+                $total_line_taxes += ((float)$tax_unformatted * (float)$quantity);
+                // $total_line_taxes += ($line['tax_unformatted'] * $line['quantity']);
             }
         }
 

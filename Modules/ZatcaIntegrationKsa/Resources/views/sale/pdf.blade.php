@@ -301,14 +301,23 @@
                 <td>Total Discount / إجمالي الخصم</td>
                 <td>@format_currency($total_discount)</td>
             </tr>
-            <tr>
+            {{-- <tr>
                 <td>Net Amount / المبلغ الصافي</td>
                 <td>@format_currency($receipt_details->total_unformatted - $total_tax)</td>
             </tr>
             <tr>
                 <td>Total Tax / إجمالي الضريبة</td>
                 <td>@format_currency($total_tax)</td>
-            </tr>
+            </tr> --}}
+           
+<tr>
+    <td>Net Amount / المبلغ الصافي</td>
+    <td>@format_currency($subtotal)</td> 
+</tr>
+<tr>
+    <td>Total Tax / إجمالي الضريبة</td>
+    <td>@format_currency($receipt_details->total_unformatted - $subtotal)</td>
+</tr>
             <tr>
                 <td>Total Amount / المبلغ الإجمالي</td>
                 <td>@format_currency($receipt_details->total_unformatted)</td>

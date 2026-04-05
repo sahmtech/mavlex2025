@@ -838,22 +838,46 @@ class ReportController extends Controller
                         return !empty($line->tobacco_tax) && $line->tobacco_tax > 0;
                     });
 
-                    if ($type == 'sell') {
-                        foreach ($row->sell_lines as $sell_line) {
-                            $is_tobacco_line = (!empty($sell_line->tobacco_tax) && $sell_line->tobacco_tax > 0);
+                    // if ($type == 'sell') {
+                    //     foreach ($row->sell_lines as $sell_line) {
+                    //         $is_tobacco_line = (!empty($sell_line->tobacco_tax) && $sell_line->tobacco_tax > 0);
 
-                            if ($is_vat_current_col) {
-                                $tax_amount = $sell_line->transaction->tax_amount * ($sell_line->quantity - $sell_line->quantity_returned);
-                            } else {
+                    //         if ($is_vat_current_col) {
+                    //             $tax_amount = $sell_line->transaction->tax_amount * ($sell_line->quantity - $sell_line->quantity_returned);
+                    //         } else {
 
-                                $tax_amount += ($sell_line->tobacco_tax * ($sell_line->quantity - $sell_line->quantity_returned));
-                            }
+                    //             $tax_amount += ($sell_line->tobacco_tax * ($sell_line->quantity - $sell_line->quantity_returned));
+                    //         }
 
-                            if ($is_tax_group && $is_tobacco_line) {
+                    //         if ($is_tax_group && $is_tobacco_line) {
 
-                                $tax_amount = $sell_line->item_tax * ($sell_line->quantity - $sell_line->quantity_returned);
-                            }
-                        }
+                    //             $tax_amount = $sell_line->item_tax * ($sell_line->quantity - $sell_line->quantity_returned);
+                    //         }
+                    //     }
+
+                    $tax_amount = 0;
+$is_vat_current_col = ((float)$tax['amount'] == 15);
+
+if ($type == 'sell') {
+    foreach ($row->sell_lines as $sell_line) {
+        $quantity = $sell_line->quantity - $sell_line->quantity_returned;
+        
+        if ($is_vat_current_col) {
+            $tax_amount += ($sell_line->item_tax * $quantity);
+        } else {
+            $tax_amount += (($sell_line->tobacco_tax ?? 0) * $quantity);
+        }
+        
+        if ($is_tax_group && !empty($sell_line->tax_id) && isset($group_taxes[$sell_line->tax_id]['sub_taxes'][$tax['id']])) {
+             $group_tax_details = $this->transactionUtil->groupTaxDetails($sell_line->tax_id, $sell_line->item_tax);
+             foreach ($group_tax_details as $sub_tax) {
+                 if ($sub_tax['id'] == $tax['id']) {
+                     $tax_amount += ($sub_tax['calculated_tax'] * $quantity);
+                 }
+             }
+        }
+    }
+
                     } elseif ($type == 'purchase') {
                         foreach ($row->purchase_lines as $purchase_line) {
                             if ($purchase_line->tax_id == $tax['id']) {
@@ -2059,6 +2083,178 @@ class ReportController extends Controller
             ));
     }
 
+
+
+//     public function getproductSellReport(Request $request)
+// {
+//     if (! auth()->user()->can('purchase_n_sell_report.view')) {
+//         abort(403, 'Unauthorized action.');
+//     }
+
+//     $business_id = $request->session()->get('user.business_id');
+//     $custom_labels = json_decode(session('business.custom_labels'), true);
+
+//     $product_custom_field1 = !empty($custom_labels['product']['custom_field_1']) ? $custom_labels['product']['custom_field_1'] : '';
+//     $product_custom_field2 = !empty($custom_labels['product']['custom_field_2']) ? $custom_labels['product']['custom_field_2'] : '';
+
+//     if ($request->ajax()) {
+//         $payment_types = $this->transactionUtil->payment_types(null, true, $business_id);
+//         $variation_id = $request->get('variation_id', null);
+
+//         $query = TransactionSellLine::join(
+//                 'transactions as t',
+//                 'transaction_sell_lines.transaction_id',
+//                 '=',
+//                 't.id'
+//             )
+//             ->join('variations as v', 'transaction_sell_lines.variation_id', '=', 'v.id')
+//             ->join('product_variations as pv', 'v.product_variation_id', '=', 'pv.id')
+//             ->join('contacts as c', 't.contact_id', '=', 'c.id')
+//             ->join('products as p', 'pv.product_id', '=', 'p.id')
+//             ->leftjoin('tax_rates', 'transaction_sell_lines.tax_id', '=', 'tax_rates.id')
+//             ->leftjoin('units as u', 'p.unit_id', '=', 'u.id')
+//             ->where('t.business_id', $business_id)
+//             ->where('t.type', 'sell')
+//             ->where('t.status', 'final')
+//             // تحسين الأداء: جلب علاقات الدفع مسبقاً
+//             ->with(['transaction.payment_lines'])
+//             ->whereNull('parent_sell_line_id')
+//             ->select(
+//                 'p.name as product_name',
+//                 'p.type as product_type',
+//                 'p.product_custom_field1 as product_custom_field1',
+//                 'p.product_custom_field2 as product_custom_field2',
+//                 'pv.name as product_variation',
+//                 'v.name as variation_name',
+//                 'v.sub_sku',
+//                 'c.name as customer',
+//                 'c.mobile as contact_no',
+//                 'c.supplier_business_name',
+//                 'c.contact_id',
+//                 't.id as transaction_id',
+//                 't.invoice_no',
+//                 't.transaction_date as transaction_date',
+//                 'transaction_sell_lines.unit_price_before_discount as unit_price',
+//                 'transaction_sell_lines.unit_price_inc_tax as unit_sale_price',
+//                 'transaction_sell_lines.item_tax',
+//                 'transaction_sell_lines.line_discount_type as discount_type',
+//                 'transaction_sell_lines.line_discount_amount as discount_amount',
+//                 'tax_rates.name as tax',
+//                 'u.short_name as unit',
+//                 'transaction_sell_lines.parent_sell_line_id',
+//                 DB::raw('(transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) as sell_qty'),
+//                 DB::raw('((transaction_sell_lines.quantity - transaction_sell_lines.quantity_returned) * transaction_sell_lines.unit_price_inc_tax) as subtotal')
+//             )
+//             ->groupBy('transaction_sell_lines.id');
+
+//         // --- الفلاتر (Filters) ---
+//         if (! empty($variation_id)) {
+//             $query->where('transaction_sell_lines.variation_id', $variation_id);
+//         }
+//         $start_date = $request->get('start_date');
+//         $end_date = $request->get('end_date');
+//         if (! empty($start_date) && ! empty($end_date)) {
+//             $query->where('t.transaction_date', '>=', $start_date)
+//                 ->where('t.transaction_date', '<=', $end_date);
+//         }
+
+//         $permitted_locations = auth()->user()->permitted_locations();
+//         if ($permitted_locations != 'all') {
+//             $query->whereIn('t.location_id', $permitted_locations);
+//         }
+
+//         if (! empty($request->get('location_id'))) {
+//             $query->where('t.location_id', $request->get('location_id'));
+//         }
+
+//         if (! empty($request->get('customer_id'))) {
+//             $query->where('t.contact_id', $request->get('customer_id'));
+//         }
+
+//         if (! empty($request->get('customer_group_id'))) {
+//             $query->leftjoin('customer_groups AS CG', 'c.customer_group_id', '=', 'CG.id')
+//                 ->where('CG.id', $request->get('customer_group_id'));
+//         }
+
+//         if (! empty($request->get('category_id'))) {
+//             $query->where('p.category_id', $request->get('category_id'));
+//         }
+
+//         if (! empty($request->get('brand_id'))) {
+//             $query->where('p.brand_id', $request->get('brand_id'));
+//         }
+
+//         return Datatables::of($query)
+//             ->editColumn('product_name', function ($row) {
+//                 $product_name = $row->product_name;
+//                 if ($row->product_type == 'variable') {
+//                     $product_name .= ' - '.$row->product_variation.' - '.$row->variation_name;
+//                 }
+//                 return $product_name;
+//             })
+//             ->editColumn('invoice_no', function ($row) {
+//                 return '<a data-href="'.action([\App\Http\Controllers\SellController::class, 'show'], [$row->transaction_id])
+//                         .'" href="#" data-container=".view_modal" class="btn-modal">'.$row->invoice_no.'</a>';
+//             })
+//             ->editColumn('transaction_date', '{{@format_datetime($transaction_date)}}')
+//             ->editColumn('unit_sale_price', function ($row) {
+//                 return '<span class="unit_sale_price" data-orig-value="'.$row->unit_sale_price.'">'.
+//                 $this->transactionUtil->num_f($row->unit_sale_price, true).'</span>';
+//             })
+//             ->editColumn('sell_qty', function ($row) {
+//                 $class = is_null($row->parent_sell_line_id) ? 'sell_qty' : '';
+//                 return '<span class="'.$class.'" data-orig-value="'.$row->sell_qty.'" data-unit="'.$row->unit.'">'.
+//                 $this->transactionUtil->num_f($row->sell_qty, false, null, true).'</span> '.$row->unit;
+//             })
+//             ->editColumn('subtotal', function ($row) {
+//                 $class = is_null($row->parent_sell_line_id) ? 'row_subtotal' : '';
+//                 return '<span class="'.$class.'" data-orig-value="'.$row->subtotal.'">'.
+//                 $this->transactionUtil->num_f($row->subtotal, true).'</span>';
+//             })
+//             ->editColumn('unit_price', function ($row) {
+//                 return '<span class="unit_price" data-orig-value="'.$row->unit_price.'">'.
+//                 $this->transactionUtil->num_f($row->unit_price, true).'</span>';
+//             })
+//             ->editColumn('discount_amount', '
+//                 @if($discount_type == "percentage")
+//                     {{@num_format($discount_amount)}} %
+//                 @elseif($discount_type == "fixed")
+//                     {{@num_format($discount_amount)}}
+//                 @endif
+//             ')
+//             ->editColumn('tax', function ($row) {
+//                 // عرض إجمالي الضريبة للسطر (ضريبة الحبة × الكمية الصافية)
+//                 $total_tax = $row->item_tax * $row->sell_qty;
+//                 return '<span class="tax" data-orig-value="'.$total_tax.'">' . 
+//                     $this->transactionUtil->num_f($total_tax, true) . '</span><br>' .
+//                     '<small class="text-muted">('.$row->tax.')</small>';
+//             })
+//             ->addColumn('payment_methods', function ($row) use ($payment_types) {
+//                 $methods = array_unique($row->transaction->payment_lines->pluck('method')->toArray());
+//                 $count = count($methods);
+//                 $payment_method = '';
+//                 if ($count == 1) {
+//                     $payment_method = $payment_types[$methods[0]] ?? $methods[0];
+//                 } elseif ($count > 1) {
+//                     $payment_method = __('lang_v1.checkout_multi_pay');
+//                 }
+//                 return ! empty($payment_method) ? '<span class="payment-method" data-status-name="'.$payment_method.'">'.$payment_method.'</span>' : '';
+//             })
+//             ->editColumn('customer', '@if(!empty($supplier_business_name)) {{$supplier_business_name}},<br>@endif {{$customer}}')
+//             ->rawColumns(['invoice_no', 'unit_sale_price', 'subtotal', 'sell_qty', 'discount_amount', 'unit_price', 'tax', 'customer', 'payment_methods'])
+//             ->make(true);
+//     }
+
+//     $business_locations = BusinessLocation::forDropdown($business_id);
+//     $customers = Contact::customersDropdown($business_id);
+//     $categories = Category::forDropdown($business_id, 'product');
+//     $brands = Brands::forDropdown($business_id);
+//     $customer_group = CustomerGroup::forDropdown($business_id, false, true);
+
+//     return view('report.product_sell_report')
+//         ->with(compact('business_locations', 'customers', 'categories', 'brands',
+//             'customer_group', 'product_custom_field1', 'product_custom_field2'));
+// }
     /**
      * Shows product purchase report with purchase details
      *
