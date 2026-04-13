@@ -21,6 +21,6 @@ class BankReconciliationItem extends Model
 
     public function glLine()
     {
-        return $this->belongsTo(AccountingAccountsTransaction::class, 'accounting_accounts_transaction_id');
+        return $this->belongsTo(AccountingAccountsTransaction::class, 'gl_line_id');
     }
 }

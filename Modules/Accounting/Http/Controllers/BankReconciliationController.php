@@ -150,7 +150,7 @@ class BankReconciliationController extends Controller
             BankReconciliationItem::firstOrCreate(
                 [
                     'reconciliation_id' => $recon->id,
-                    'accounting_accounts_transaction_id' => $line->id,
+                    'gl_line_id' => $line->id,
                 ],
                 ['is_cleared' => false]
             );

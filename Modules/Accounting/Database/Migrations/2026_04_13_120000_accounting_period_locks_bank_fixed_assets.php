@@ -8,66 +8,76 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('accounting_period_locks', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('business_id');
-            $table->unsignedSmallInteger('lock_year');
-            $table->unsignedTinyInteger('lock_month');
-            $table->unsignedInteger('created_by')->nullable();
-            $table->timestamps();
-            $table->unique(['business_id', 'lock_year', 'lock_month'], 'accounting_period_locks_unique');
-        });
+        if (! Schema::hasTable('accounting_period_locks')) {
+            Schema::create('accounting_period_locks', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedInteger('business_id');
+                $table->unsignedSmallInteger('lock_year');
+                $table->unsignedTinyInteger('lock_month');
+                $table->unsignedInteger('created_by')->nullable();
+                $table->timestamps();
+                $table->unique(['business_id', 'lock_year', 'lock_month'], 'accounting_period_locks_unique');
+            });
+        }
 
-        Schema::create('accounting_bank_reconciliations', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('business_id');
-            $table->unsignedBigInteger('accounting_account_id');
-            $table->date('statement_date');
-            $table->decimal('statement_balance', 22, 4);
-            $table->decimal('book_balance', 22, 4)->nullable();
-            $table->string('status', 32)->default('open');
-            $table->text('notes')->nullable();
-            $table->unsignedInteger('created_by');
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('accounting_bank_reconciliations')) {
+            Schema::create('accounting_bank_reconciliations', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedInteger('business_id');
+                $table->unsignedBigInteger('accounting_account_id');
+                $table->date('statement_date');
+                $table->decimal('statement_balance', 22, 4);
+                $table->decimal('book_balance', 22, 4)->nullable();
+                $table->string('status', 32)->default('open');
+                $table->text('notes')->nullable();
+                $table->unsignedInteger('created_by');
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('accounting_bank_reconciliation_items', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('reconciliation_id');
-            $table->unsignedBigInteger('accounting_accounts_transaction_id');
-            $table->boolean('is_cleared')->default(false);
-            $table->timestamps();
-            // Short index names — MySQL limits identifiers to 64 characters
-            $table->index('reconciliation_id', 'abri_recon_id_idx');
-            $table->index('accounting_accounts_transaction_id', 'abri_acc_txn_id_idx');
-        });
+        if (! Schema::hasTable('accounting_bank_reconciliation_items')) {
+            Schema::create('accounting_bank_reconciliation_items', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('reconciliation_id');
+                // Short column name so MySQL never auto-builds an over-64-char index name
+                $table->unsignedBigInteger('gl_line_id')->comment('accounting_accounts_transactions.id');
+                $table->boolean('is_cleared')->default(false);
+                $table->timestamps();
+                $table->index('reconciliation_id', 'abri_recon_idx');
+                $table->index('gl_line_id', 'abri_gl_line_idx');
+            });
+        }
 
-        Schema::create('accounting_fixed_assets', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedInteger('business_id');
-            $table->string('name');
-            $table->date('acquisition_date');
-            $table->decimal('cost', 22, 4);
-            $table->decimal('salvage_value', 22, 4)->default(0);
-            $table->unsignedInteger('useful_life_months');
-            $table->unsignedBigInteger('asset_account_id');
-            $table->unsignedBigInteger('accumulated_depreciation_account_id');
-            $table->unsignedBigInteger('depreciation_expense_account_id');
-            $table->string('status', 32)->default('active');
-            $table->unsignedInteger('created_by');
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('accounting_fixed_assets')) {
+            Schema::create('accounting_fixed_assets', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedInteger('business_id');
+                $table->string('name');
+                $table->date('acquisition_date');
+                $table->decimal('cost', 22, 4);
+                $table->decimal('salvage_value', 22, 4)->default(0);
+                $table->unsignedInteger('useful_life_months');
+                $table->unsignedBigInteger('asset_account_id');
+                $table->unsignedBigInteger('accumulated_depreciation_account_id');
+                $table->unsignedBigInteger('depreciation_expense_account_id');
+                $table->string('status', 32)->default('active');
+                $table->unsignedInteger('created_by');
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('accounting_fixed_asset_depreciations', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('fixed_asset_id');
-            $table->unsignedSmallInteger('period_year');
-            $table->unsignedTinyInteger('period_month');
-            $table->decimal('amount', 22, 4);
-            $table->unsignedBigInteger('acc_trans_mapping_id')->nullable();
-            $table->timestamps();
-            $table->unique(['fixed_asset_id', 'period_year', 'period_month'], 'fa_dep_unique');
-        });
+        if (! Schema::hasTable('accounting_fixed_asset_depreciations')) {
+            Schema::create('accounting_fixed_asset_depreciations', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('fixed_asset_id');
+                $table->unsignedSmallInteger('period_year');
+                $table->unsignedTinyInteger('period_month');
+                $table->decimal('amount', 22, 4);
+                $table->unsignedBigInteger('acc_trans_mapping_id')->nullable();
+                $table->timestamps();
+                $table->unique(['fixed_asset_id', 'period_year', 'period_month'], 'fa_dep_unique');
+            });
+        }
 
         Schema::table('accounting_accounts_transactions', function (Blueprint $table) {
             if (! Schema::hasColumn('accounting_accounts_transactions', 'currency_id')) {
