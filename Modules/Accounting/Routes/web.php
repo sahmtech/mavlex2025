@@ -11,8 +11,11 @@
 |
 */
 
+use Modules\Accounting\Http\Controllers\BankReconciliationController;
+use Modules\Accounting\Http\Controllers\FixedAssetController;
 use Modules\Accounting\Http\Controllers\OpeningBalanceController;
 use Modules\Accounting\Http\Controllers\PaymentVouchersController;
+use Modules\Accounting\Http\Controllers\PeriodLockController;
 use Modules\Accounting\Http\Controllers\ReceiptVouchersController;
 
 Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'AdminSidebarMenu')->prefix('accounting')->group(function () {
@@ -108,4 +111,20 @@ Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'Admi
     Route::post('install', [\Modules\Accounting\Http\Controllers\InstallController::class, 'install']);
     Route::get('install/uninstall', [\Modules\Accounting\Http\Controllers\InstallController::class, 'uninstall']);
     Route::get('install/update', [\Modules\Accounting\Http\Controllers\InstallController::class, 'update']);
+
+    Route::get('period-locks', [PeriodLockController::class, 'index'])->name('accounting.period-locks.index');
+    Route::post('period-locks', [PeriodLockController::class, 'store'])->name('accounting.period-locks.store');
+    Route::delete('period-locks/{id}', [PeriodLockController::class, 'destroy'])->name('accounting.period-locks.destroy');
+
+    Route::get('bank-reconciliation', [BankReconciliationController::class, 'index'])->name('accounting.bank-reconciliation.index');
+    Route::get('bank-reconciliation/create', [BankReconciliationController::class, 'create'])->name('accounting.bank-reconciliation.create');
+    Route::post('bank-reconciliation', [BankReconciliationController::class, 'store'])->name('accounting.bank-reconciliation.store');
+    Route::get('bank-reconciliation/{id}', [BankReconciliationController::class, 'show'])->name('accounting.bank-reconciliation.show');
+    Route::post('bank-reconciliation/{id}/items', [BankReconciliationController::class, 'updateItems'])->name('accounting.bank-reconciliation.items');
+    Route::post('bank-reconciliation/{id}/complete', [BankReconciliationController::class, 'complete'])->name('accounting.bank-reconciliation.complete');
+
+    Route::get('fixed-assets', [FixedAssetController::class, 'index'])->name('accounting.fixed-assets.index');
+    Route::get('fixed-assets/create', [FixedAssetController::class, 'create'])->name('accounting.fixed-assets.create');
+    Route::post('fixed-assets', [FixedAssetController::class, 'store'])->name('accounting.fixed-assets.store');
+    Route::post('fixed-assets/{id}/depreciate', [FixedAssetController::class, 'depreciate'])->name('accounting.fixed-assets.depreciate');
 });

@@ -15,7 +15,9 @@ use Modules\Accounting\Entities\AccountingAccountsTransactionHistory;
 use Modules\Accounting\Entities\AccountingAccTransMapping;
 use Modules\Accounting\Entities\AccountingAccTransMappingHistory;
 use Modules\Accounting\Entities\CostCenter;
+use Modules\Accounting\Services\AccountingPeriodLockService;
 use Modules\Accounting\Utils\AccountingUtil;
+use Modules\Accounting\Utils\JournalEntryValidator;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\Auth;
 
@@ -26,17 +28,20 @@ class JournalEntryController extends Controller
      */
     protected $util;
 
+    protected AccountingPeriodLockService $periodLockService;
+
     /**
      * Constructor
      *
      * @param  ProductUtils  $product
      * @return void
      */
-    public function __construct(Util $util, ModuleUtil $moduleUtil, AccountingUtil $accountingUtil)
+    public function __construct(Util $util, ModuleUtil $moduleUtil, AccountingUtil $accountingUtil, AccountingPeriodLockService $periodLockService)
     {
         $this->util = $util;
         $this->moduleUtil = $moduleUtil;
         $this->accountingUtil = $accountingUtil;
+        $this->periodLockService = $periodLockService;
     }
 
     /**
@@ -180,8 +185,6 @@ class JournalEntryController extends Controller
 
 
         try {
-            DB::beginTransaction();
-
             $user_id = request()->session()->get('user.id');
 
             $account_ids = $request->get('account_id');
@@ -189,7 +192,28 @@ class JournalEntryController extends Controller
             $debits = $request->get('debit');
             $journal_date = $request->get('journal_date');
             $additional_notes = $request->get('additional_notes');
-            $cost_centers =  $request->get('cost_center');
+            $cost_centers = $request->get('cost_center');
+
+            $journalDateParsed = $this->util->uf_date($journal_date, true);
+            $this->periodLockService->assertUnlocked($business_id, $journalDateParsed);
+
+            $parseAmount = fn ($v) => $this->util->num_uf($v ?? 0);
+            $validation = JournalEntryValidator::validateJournalLines($account_ids ?? [], $debits ?? [], $credits ?? [], $parseAmount);
+            if (! $validation['ok']) {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => __('accounting::lang.journal_validation_'.$validation['error']),
+                ]);
+            }
+
+            if (! JournalEntryValidator::accountsBelongToBusiness($account_ids ?? [], $business_id)) {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => __('accounting::lang.journal_invalid_accounts'),
+                ]);
+            }
+
+            DB::beginTransaction();
 
             $accounting_settings = $this->accountingUtil->getAccountingSettings($business_id);
 
@@ -214,7 +238,7 @@ class JournalEntryController extends Controller
             $acc_trans_mapping->note = $request->get('note');
             $acc_trans_mapping->type = 'journal_entry';
             $acc_trans_mapping->created_by = $user_id;
-            $acc_trans_mapping->operation_date = $this->util->uf_date($journal_date, true);
+            $acc_trans_mapping->operation_date = $journalDateParsed;
             $acc_trans_mapping->save();
 
             //save details in account trnsactions table
@@ -224,18 +248,18 @@ class JournalEntryController extends Controller
                     $transaction_row['accounting_account_id'] = $account_id;
 
                     if (!empty($credits[$index])) {
-                        $transaction_row['amount'] = $credits[$index];
+                        $transaction_row['amount'] = $this->util->num_uf($credits[$index]);
                         $transaction_row['type'] = 'credit';
                     }
 
                     if (!empty($debits[$index])) {
-                        $transaction_row['amount'] = $debits[$index];
+                        $transaction_row['amount'] = $this->util->num_uf($debits[$index]);
                         $transaction_row['type'] = 'debit';
                     }
-                    $transaction_row['cost_center_id'] = $cost_centers[$index];
+                    $transaction_row['cost_center_id'] = $cost_centers[$index] ?? null;
                     $transaction_row['additional_notes'] = $additional_notes[$index];
                     $transaction_row['created_by'] = $user_id;
-                    $transaction_row['operation_date'] = $this->util->uf_date($journal_date, true);
+                    $transaction_row['operation_date'] = $journalDateParsed;
                     $transaction_row['sub_type'] = 'journal_entry';
                     $transaction_row['acc_trans_mapping_id'] = $acc_trans_mapping->id;
 
@@ -251,6 +275,15 @@ class JournalEntryController extends Controller
                 'success' => 1,
                 'msg' => __('lang_v1.added_success'),
             ];
+        } catch (\RuntimeException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => $e->getMessage(),
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
@@ -322,8 +355,6 @@ class JournalEntryController extends Controller
     {
         $business_id = request()->session()->get('user.business_id');
         try {
-            DB::beginTransaction();
-
             $user_id = request()->session()->get('user.id');
 
             $account_ids = $request->get('account_id');
@@ -332,7 +363,28 @@ class JournalEntryController extends Controller
             $debits = $request->get('debit');
             $journal_date = $request->get('journal_date');
             $additional_notes = $request->get('additional_notes');
-            $cost_centers =  $request->get('cost_center');
+            $cost_centers = $request->get('cost_center');
+
+            $journalDateParsed = $this->util->uf_date($journal_date, true);
+            $this->periodLockService->assertUnlocked($business_id, $journalDateParsed);
+
+            $parseAmount = fn ($v) => $this->util->num_uf($v ?? 0);
+            $validation = JournalEntryValidator::validateJournalLines($account_ids ?? [], $debits ?? [], $credits ?? [], $parseAmount);
+            if (! $validation['ok']) {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => __('accounting::lang.journal_validation_'.$validation['error']),
+                ]);
+            }
+
+            if (! JournalEntryValidator::accountsBelongToBusiness($account_ids ?? [], $business_id)) {
+                return redirect()->back()->with('status', [
+                    'success' => 0,
+                    'msg' => __('accounting::lang.journal_invalid_accounts'),
+                ]);
+            }
+
+            DB::beginTransaction();
 
             $acc_trans_mapping = AccountingAccTransMapping::where('business_id', $business_id)
                 ->where('type', 'journal_entry')
@@ -355,7 +407,7 @@ class JournalEntryController extends Controller
                 $acc_trans_mapping->path_file = $attachment_name;
             }
             $acc_trans_mapping->note = $request->get('note');
-            $acc_trans_mapping->operation_date = $this->util->uf_date($journal_date, true);
+            $acc_trans_mapping->operation_date = $journalDateParsed;
             $acc_trans_mapping->update();
 
             //save details in account trnsactions table
@@ -365,20 +417,20 @@ class JournalEntryController extends Controller
                     $transaction_row['accounting_account_id'] = $account_id;
 
                     if (!empty($credits[$index])) {
-                        $transaction_row['amount'] = $credits[$index];
+                        $transaction_row['amount'] = $this->util->num_uf($credits[$index]);
                         $transaction_row['type'] = 'credit';
                     }
 
                     if (!empty($debits[$index])) {
-                        $transaction_row['amount'] = $debits[$index];
+                        $transaction_row['amount'] = $this->util->num_uf($debits[$index]);
                         $transaction_row['type'] = 'debit';
                     }
-                    $transaction_row['cost_center_id'] = $cost_centers[$index];
+                    $transaction_row['cost_center_id'] = $cost_centers[$index] ?? null;
 
                     $transaction_row['additional_notes'] = $additional_notes[$index] ?? '';
                   
                     $transaction_row['created_by'] = $user_id;
-                    $transaction_row['operation_date'] = $this->util->uf_date($journal_date, true);
+                    $transaction_row['operation_date'] = $journalDateParsed;
                     $transaction_row['sub_type'] = 'journal_entry';
                     $transaction_row['acc_trans_mapping_id'] = $acc_trans_mapping->id;
 
@@ -410,7 +462,7 @@ class JournalEntryController extends Controller
                         $accounts_transactions->save();
                     }
                 } elseif (!empty($accounts_transactions_id[$index])) {
-                    AccountingAccountsTransaction::delete($accounts_transactions_id[$index]);
+                    AccountingAccountsTransaction::where('id', $accounts_transactions_id[$index])->delete();
                 }
             }
 
@@ -420,10 +472,17 @@ class JournalEntryController extends Controller
             ];
 
             DB::commit();
+        } catch (\RuntimeException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return redirect()->back()->with('status', [
+                'success' => 0,
+                'msg' => $e->getMessage(),
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            print_r($e->getMessage());
-            exit;
             \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
             $output = [
@@ -535,6 +594,15 @@ class JournalEntryController extends Controller
 
         $acc_trans_mapping = AccountingAccTransMapping::where('id', $id)
             ->where('business_id', $business_id)->firstOrFail();
+
+        try {
+            $this->periodLockService->assertUnlocked($business_id, $acc_trans_mapping->operation_date);
+        } catch (\RuntimeException $e) {
+            return [
+                'success' => 0,
+                'msg' => $e->getMessage(),
+            ];
+        }
 
         if (!empty($acc_trans_mapping)) {
             $acc_trans_mapping->delete();

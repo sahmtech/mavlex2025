@@ -137,6 +137,27 @@ class DataController extends Controller
                                     ['icon' => '', 'active' => request()->segment(2) == 'reports']
                                 );
                             }
+                            if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.period_locks')) {
+                                $sub->url(
+                                    action([\Modules\Accounting\Http\Controllers\PeriodLockController::class, 'index']),
+                                    __('accounting::lang.period_locks'),
+                                    ['icon' => '', 'active' => request()->segment(2) == 'period-locks']
+                                );
+                            }
+                            if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.bank_reconciliation')) {
+                                $sub->url(
+                                    action([\Modules\Accounting\Http\Controllers\BankReconciliationController::class, 'index']),
+                                    __('accounting::lang.bank_reconciliation'),
+                                    ['icon' => '', 'active' => request()->segment(2) == 'bank-reconciliation']
+                                );
+                            }
+                            if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.fixed_assets')) {
+                                $sub->url(
+                                    action([\Modules\Accounting\Http\Controllers\FixedAssetController::class, 'index']),
+                                    __('accounting::lang.fixed_assets_module'),
+                                    ['icon' => '', 'active' => request()->segment(2) == 'fixed-assets']
+                                );
+                            }
                             if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.settings')) {
                                 $sub->url(
                                     action([\Modules\Accounting\Http\Controllers\SettingsController::class, 'index']),
@@ -368,10 +389,21 @@ class DataController extends Controller
                 'label' => __('accounting::lang.rest_accounting_data'),
                 'default' => false,
             ],
-
-
-
-
+            [
+                'value' => 'accounting.period_locks',
+                'label' => __('accounting::lang.period_locks'),
+                'default' => false,
+            ],
+            [
+                'value' => 'accounting.bank_reconciliation',
+                'label' => __('accounting::lang.bank_reconciliation'),
+                'default' => false,
+            ],
+            [
+                'value' => 'accounting.fixed_assets',
+                'label' => __('accounting::lang.fixed_assets_module'),
+                'default' => false,
+            ],
 
         ];
     }

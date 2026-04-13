@@ -2,6 +2,7 @@
 
 namespace Modules\Accounting\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -13,6 +14,7 @@ use Modules\Accounting\Entities\AccountingAccountType;
 use Modules\Accounting\Entities\AccountingAccTransMapping;
 use Modules\Accounting\Entities\CostCenter;
 use Modules\Accounting\Entities\OpeningBalance;
+use Modules\Accounting\Services\AccountingPeriodLockService;
 use Yajra\DataTables\Facades\DataTables;
 use App\Utils\ModuleUtil;
 use Illuminate\Support\Facades\Auth;
@@ -22,10 +24,12 @@ class OpeningBalanceController extends Controller
 {
     protected $moduleUtil;
 
+    protected AccountingPeriodLockService $periodLockService;
 
-    public function __construct(ModuleUtil $moduleUtil)
+    public function __construct(ModuleUtil $moduleUtil, AccountingPeriodLockService $periodLockService)
     {
         $this->moduleUtil = $moduleUtil;
+        $this->periodLockService = $periodLockService;
     }
     protected function index()
     {
@@ -130,16 +134,21 @@ class OpeningBalanceController extends Controller
             ]);
         }
         try {
-            DB::beginTransaction();
             $user_id = request()->session()->get('user.id');
             $validated = $validator->validated();
             $validated['created_by'] = auth()->user()->id;
             $validated['business_id'] = $request->session()->get('user.business_id');
+            $operationDate = Carbon::now();
+            $this->periodLockService->assertUnlocked((int) $validated['business_id'], $operationDate);
+
+            DB::beginTransaction();
             $transaction = AccountingAccountsTransaction::query()->create([
                 'accounting_account_id' => $validated['accounting_account_id'],
                 'amount' => $validated['value'],
                 'type' => $validated['type'] == 'credit' ? 'credit' : 'debit',
-                'sub_type' => 'opening_balance'
+                'sub_type' => 'opening_balance',
+                'operation_date' => $operationDate->format('Y-m-d H:i:s'),
+                'created_by' => $user_id,
             ]);
             $validated['acc_transaction_id'] = $transaction->id;
             OpeningBalance::query()->create([
@@ -150,6 +159,14 @@ class OpeningBalanceController extends Controller
                 'acc_transaction_id' => $validated['acc_transaction_id']
             ]);
             DB::commit();
+        } catch (\RuntimeException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            return redirect()->back()->with([
+                'success' => false,
+                'msg' => $e->getMessage(),
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with([
@@ -213,6 +230,16 @@ class OpeningBalanceController extends Controller
     if (request()->ajax()) {
         $transaction = AccountingAccountsTransaction::query()->find($id);
         if ($transaction) {
+            $business_id = (int) request()->session()->get('user.business_id');
+            try {
+                $this->periodLockService->assertUnlocked($business_id, $transaction->operation_date);
+            } catch (\RuntimeException $e) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => $e->getMessage(),
+                ]);
+            }
+
             $transaction->delete();
 
             $ob = OpeningBalance::query()->where('acc_transaction_id', $id)->first();

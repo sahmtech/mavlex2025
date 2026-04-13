@@ -10,6 +10,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Modules\Accounting\Entities\AccountingAccountsTransaction;
 use Modules\Accounting\Entities\AccountingAccTransMapping;
+use Modules\Accounting\Services\AccountingPeriodLockService;
 use Modules\Accounting\Utils\AccountingUtil;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -20,17 +21,20 @@ class TransferController extends Controller
      */
     protected $util;
 
+    protected AccountingPeriodLockService $periodLockService;
+
     /**
      * Constructor
      *
      * @param  ProductUtils  $product
      * @return void
      */
-    public function __construct(Util $util, ModuleUtil $moduleUtil, AccountingUtil $accountingUtil)
+    public function __construct(Util $util, ModuleUtil $moduleUtil, AccountingUtil $accountingUtil, AccountingPeriodLockService $periodLockService)
     {
         $this->util = $util;
         $this->moduleUtil = $moduleUtil;
         $this->accountingUtil = $accountingUtil;
+        $this->periodLockService = $periodLockService;
     }
 
     /**
@@ -186,14 +190,16 @@ class TransferController extends Controller
       
 
         try {
-            DB::beginTransaction();
-
             $user_id = request()->session()->get('user.id');
 
             $from_account = $request->get('from_account');
             $to_account = $request->get('to_account');
             $amount = $request->get('amount');
             $date = $this->util->uf_date($request->get('operation_date'), true);
+
+            $this->periodLockService->assertUnlocked($business_id, $date);
+
+            DB::beginTransaction();
 
             $accounting_settings = $this->accountingUtil->getAccountingSettings($business_id);
 
@@ -238,6 +244,15 @@ class TransferController extends Controller
             $output = [
                 'success' => 1,
                 'msg' => __('lang_v1.added_success'),
+            ];
+        } catch (\RuntimeException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return [
+                'success' => 0,
+                'msg' => $e->getMessage(),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -313,11 +328,14 @@ class TransferController extends Controller
                 ->where('type', 'credit')
                 ->first();
 
-            DB::beginTransaction();
             $from_account = $request->get('from_account');
             $to_account = $request->get('to_account');
             $amount = $request->get('amount');
             $date = $this->util->uf_date($request->get('operation_date'), true);
+
+            $this->periodLockService->assertUnlocked($business_id, $date);
+
+            DB::beginTransaction();
 
             $ref_no = $request->get('ref_no');
             $ref_count = $this->util->setAndGetReferenceCount('accounting_transfer');
@@ -346,6 +364,15 @@ class TransferController extends Controller
             $output = [
                 'success' => 1,
                 'msg' => __('lang_v1.updated_success'),
+            ];
+        } catch (\RuntimeException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return [
+                'success' => 0,
+                'msg' => $e->getMessage(),
             ];
         } catch (\Exception $e) {
             DB::rollBack();
@@ -382,6 +409,15 @@ class TransferController extends Controller
 
         $acc_trans_mapping = AccountingAccTransMapping::where('id', $id)
             ->where('business_id', $business_id)->firstOrFail();
+
+        try {
+            $this->periodLockService->assertUnlocked($business_id, $acc_trans_mapping->operation_date);
+        } catch (\RuntimeException $e) {
+            return [
+                'success' => 0,
+                'msg' => $e->getMessage(),
+            ];
+        }
 
         if (!empty($acc_trans_mapping)) {
             $acc_trans_mapping->delete();
