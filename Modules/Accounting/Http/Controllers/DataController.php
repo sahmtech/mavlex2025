@@ -109,6 +109,13 @@ class DataController extends Controller
                                     ['icon' => '', 'active' => request()->segment(2) == 'automated-migration']
                                 );
                             }
+                            if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.settings') || auth()->user()->can('accounting.autoMigration')) {
+                                $sub->url(
+                                    action([\Modules\Accounting\Http\Controllers\SettingsController::class, 'salesAutoPosting']),
+                                    __('accounting::lang.configure_sales_auto_posting'),
+                                    ['icon' => '', 'active' => request()->segment(2) == 'sales-auto-posting']
+                                );
+                            }
                             if (auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || auth()->user()->can('accounting.view_transfer')) {
                                 $sub->url(
                                     action([\Modules\Accounting\Http\Controllers\TransferController::class, 'index']),

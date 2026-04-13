@@ -49,6 +49,8 @@ Route::middleware('web', 'SetSessionData', 'auth', 'language', 'timezone', 'Admi
 
 
     Route::get('settings', [\Modules\Accounting\Http\Controllers\SettingsController::class, 'index']);
+    Route::get('sales-auto-posting', [\Modules\Accounting\Http\Controllers\SettingsController::class, 'salesAutoPosting'])->name('accounting.sales-auto-posting');
+    Route::post('sales-auto-posting', [\Modules\Accounting\Http\Controllers\SettingsController::class, 'saveSalesAutoPosting'])->name('accounting.sales-auto-posting.save');
     Route::get('reset-data', [\Modules\Accounting\Http\Controllers\SettingsController::class, 'resetData']);
 
     Route::resource('account-type', \Modules\Accounting\Http\Controllers\AccountTypeController::class);

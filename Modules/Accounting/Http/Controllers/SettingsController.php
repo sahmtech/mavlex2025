@@ -152,6 +152,106 @@ class SettingsController extends Controller
     }
 
     /**
+     * Standalone page: default accounts for automatic journal posting from sales invoices and sales payments.
+     */
+    public function salesAutoPosting()
+    {
+        $business_id = request()->session()->get('user.business_id');
+
+        if (! $this->userCanConfigureSalesAutoPosting($business_id)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $business_locations = BusinessLocation::where('business_id', $business_id)->get();
+
+        return view('accounting::settings.sales_auto_posting', compact('business_locations'));
+    }
+
+    /**
+     * Persist only sale + sell_payment keys into each location's accounting_default_map (merge, do not replace whole map).
+     */
+    public function saveSalesAutoPosting(Request $request)
+    {
+        $business_id = request()->session()->get('user.business_id');
+
+        if (! $this->userCanConfigureSalesAutoPosting($business_id)) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        try {
+            $incoming = $request->input('accounting_default_map', []);
+            if (! is_array($incoming)) {
+                $incoming = [];
+            }
+
+            foreach ($incoming as $location_id => $partial) {
+                $location_id = (int) $location_id;
+                $loc = BusinessLocation::where('id', $location_id)
+                    ->where('business_id', $business_id)
+                    ->first();
+                if (! $loc) {
+                    continue;
+                }
+
+                $map = [];
+                if (! empty($loc->accounting_default_map)) {
+                    $decoded = json_decode($loc->accounting_default_map, true);
+                    $map = is_array($decoded) ? $decoded : [];
+                }
+
+                foreach (['sale', 'sell_payment'] as $section) {
+                    if (! isset($partial[$section]) || ! is_array($partial[$section])) {
+                        continue;
+                    }
+                    $merged = $map[$section] ?? [];
+                    foreach (['payment_account', 'deposit_to'] as $field) {
+                        if (! array_key_exists($field, $partial[$section])) {
+                            continue;
+                        }
+                        $val = $partial[$section][$field];
+                        if ($val === '' || $val === null) {
+                            unset($merged[$field]);
+                        } else {
+                            $merged[$field] = $val;
+                        }
+                    }
+                    if (! empty($merged)) {
+                        $map[$section] = $merged;
+                    } else {
+                        unset($map[$section]);
+                    }
+                }
+
+                $loc->accounting_default_map = json_encode($map);
+                $loc->save();
+            }
+
+            $output = [
+                'success' => true,
+                'msg' => __('lang_v1.updated_success'),
+            ];
+        } catch (\Exception $e) {
+            \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+            $output = [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+            ];
+        }
+
+        return redirect()->back()->with(['status' => $output]);
+    }
+
+    protected function userCanConfigureSalesAutoPosting($business_id): bool
+    {
+        return auth()->user()->can('Admin#'.$business_id)
+            || auth()->user()->can('superadmin')
+            || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')
+            || auth()->user()->can('accounting.settings')
+            || auth()->user()->can('accounting.autoMigration');
+    }
+
+    /**
      * Show the specified resource.
      *
      * @param  int  $id

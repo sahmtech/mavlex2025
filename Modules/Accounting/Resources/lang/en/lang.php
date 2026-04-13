@@ -490,6 +490,9 @@ return [
     'account_payable_ageing_report_description' => 'This reports shows summary of all the purchase pending 
      invoices in mentioned days range as per the due date.',
     'automatedMigration' => 'Automated Migration',
+    'configure_sales_auto_posting' => 'Configure automatic posting (sales)',
+    'configure_sales_auto_posting_help' => 'For each location, set the default payment account and deposit account: «Sales» is used when generating journals from sales invoices; «Sales payments» when recording customer payments. Other mapping keys (purchases, expenses, etc.) are preserved.',
+    'configure_sales_auto_posting_no_locations' => 'There are no business locations. Add a location in business settings first.',
     'add_auto_migration' => 'Add automated migration',
     'delete' => 'حذف',
     'autoMigration' => [
