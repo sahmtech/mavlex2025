@@ -6840,24 +6840,33 @@ class TransactionUtil extends Util
      * Same rules as MapSellTransaction / MapPurchaseTransaction / MapExpenseTransactions (location accounting_default_map).
      *
      * @param  int  $transactionId
-     * @return bool
+     * @return array{success: bool, message: string}
      */
     public function createTransactionJournal_entry($transactionId)
     {
         $transaction = Transaction::find($transactionId);
         if (empty($transaction)) {
-            return false;
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_transaction_not_found'),
+            ];
         }
 
         $user_id = auth()->id();
         if (empty($user_id)) {
-            return false;
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_user_required'),
+            ];
         }
 
         $business_id = $transaction->business_id;
         $business_location = BusinessLocation::find($transaction->location_id);
         if (empty($business_location)) {
-            return false;
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_location_missing'),
+            ];
         }
 
         $accounting_default_map = json_decode($business_location->accounting_default_map, true) ?? [];
@@ -6891,22 +6900,42 @@ class TransactionUtil extends Util
                 $payment_account = $accounting_default_map['expense']['payment_account'] ?? null;
             }
         } else {
-            return false;
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_unsupported_type', ['type' => $type]),
+            ];
         }
 
         if (empty($deposit_to) || empty($payment_account)) {
-            return false;
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_missing_default_accounts'),
+            ];
         }
 
         try {
             $accountingUtil = new \Modules\Accounting\Utils\AccountingUtil();
             $accountingUtil->saveMap($saveType, $transaction->id, $user_id, $business_id, $deposit_to, $payment_account);
         } catch (\Throwable $e) {
-            \Log::error('createTransactionJournal_entry: '.$e->getMessage(), ['transaction_id' => $transactionId]);
+            \Log::error('createTransactionJournal_entry: '.$e->getMessage(), [
+                'transaction_id' => $transactionId,
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-            return false;
+            $detail = $e->getMessage();
+            if (strlen($detail) > 400) {
+                $detail = substr($detail, 0, 400).'…';
+            }
+
+            return [
+                'success' => false,
+                'message' => __('accounting::lang.journal_entry_save_failed', ['detail' => $detail]),
+            ];
         }
 
-        return true;
+        return [
+            'success' => true,
+            'message' => __('lang_v1.added_success'),
+        ];
     }
 }

@@ -779,4 +779,12 @@ return [
     'accumulated_depreciation_account' => 'Accumulated depreciation account',
     'depreciation_expense_account' => 'Depreciation expense account',
 
+    'journal_entry_transaction_not_found' => 'Transaction not found.',
+    'journal_entry_user_required' => 'You must be logged in to generate a journal entry.',
+    'journal_entry_location_missing' => 'Branch/location for this transaction is missing.',
+    'journal_entry_unsupported_type' => 'This transaction type cannot be posted automatically yet (:type).',
+    'journal_entry_missing_default_accounts' => 'Default accounts are not set for this branch. Open Accounting → Settings and choose Deposit to / Payment account for sales, purchases, or expenses.',
+    'journal_entry_save_failed' => 'Could not save the accounting lines. Details: :detail',
+    'technical_erorr_detail' => 'A technical error occurred. Details: :detail',
+
 ];

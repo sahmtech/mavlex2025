@@ -512,20 +512,12 @@ class TransactionController extends Controller
 
     public function create_Journal_entry($id)
     {
-        $createdJournal_entry = $this->transactionUtil->createTransactionJournal_entry($id);
-        if ($createdJournal_entry) {
-            $output = [
-                'success' => true,
-                'msg' => __("lang_v1.added_success")
-            ];
-            return redirect()->back()->with('status', $output);
-        } else {
-            $output = [
-                'success' => false,
-                'msg' => __("messages.something_went_wrong")
-            ];
-            return redirect()->back()->with('status', $output);
-        }
+        $result = $this->transactionUtil->createTransactionJournal_entry($id);
+
+        return redirect()->back()->with('status', [
+            'success' => $result['success'],
+            'msg' => $result['message'],
+        ]);
     }
     public function map(Request $request)
     {

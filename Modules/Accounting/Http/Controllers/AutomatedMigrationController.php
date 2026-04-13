@@ -303,13 +303,17 @@ class AutomatedMigrationController extends Controller
             return redirect()->route('automated-migration.index')->with('status', $output);
         } catch (Exception $e) {
             DB::rollBack();
-            $output = [
-                'success' => 1,
-                'msg' => __('accounting::lang.technical_erorr')
-            ];
+            \Log::error('store_deflute_auto_migration: '.$e->getMessage(), ['trace' => $e->getTraceAsString()]);
 
+            $detail = $e->getMessage();
+            if (strlen($detail) > 400) {
+                $detail = substr($detail, 0, 400).'…';
+            }
 
-            return redirect()->route('automated-migration.index')->with('status', $output);
+            return redirect()->route('automated-migration.index')->with('status', [
+                'success' => false,
+                'msg' => __('accounting::lang.technical_erorr_detail', ['detail' => $detail]),
+            ]);
         }
     }
 

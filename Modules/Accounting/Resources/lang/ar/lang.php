@@ -776,4 +776,12 @@ return [
     'accumulated_depreciation_account' => 'حساب مجمع الإهلاك',
     'depreciation_expense_account' => 'حساب مصروف الإهلاك',
 
+    'journal_entry_transaction_not_found' => 'لم يُعثر على العملية.',
+    'journal_entry_user_required' => 'يجب تسجيل الدخول لتوليد القيد.',
+    'journal_entry_location_missing' => 'لا يوجد فرع مرتبط بهذه العملية.',
+    'journal_entry_unsupported_type' => 'نوع العملية غير مدعوم للترحيل التلقائي حالياً (:type).',
+    'journal_entry_missing_default_accounts' => 'لم يتم ضبط الحسابات الافتراضية لهذا الفرع. افتح المحاسبة ← الإعدادات واختر «الإيداع في» و«حساب الدفع» للمبيعات أو المشتريات أو المصروفات ثم احفظ.',
+    'journal_entry_save_failed' => 'تعذر حفظ قيود الأستاذ. التفاصيل: :detail',
+    'technical_erorr_detail' => 'حدث خطأ تقني. التفاصيل: :detail',
+
 ];
