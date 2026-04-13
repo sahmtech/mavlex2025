@@ -37,8 +37,9 @@ return new class extends Migration
             $table->unsignedBigInteger('accounting_accounts_transaction_id');
             $table->boolean('is_cleared')->default(false);
             $table->timestamps();
-            $table->index('reconciliation_id');
-            $table->index('accounting_accounts_transaction_id');
+            // Short index names — MySQL limits identifiers to 64 characters
+            $table->index('reconciliation_id', 'abri_recon_id_idx');
+            $table->index('accounting_accounts_transaction_id', 'abri_acc_txn_id_idx');
         });
 
         Schema::create('accounting_fixed_assets', function (Blueprint $table) {
