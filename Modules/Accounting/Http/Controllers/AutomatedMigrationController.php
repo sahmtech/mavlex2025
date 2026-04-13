@@ -175,9 +175,8 @@ class AutomatedMigrationController extends Controller
         if (!(auth()->user()->can('Admin#' . request()->session()->get('user.business_id')) || auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module') || auth()->user()->can('accounting.create_autoMigration'))) {
             abort(403, 'Unauthorized action.');
         }
-        $mappingSetting_ids = AccountingMappingSettingAutoMigration::pluck('id');
+        $business_locations = BusinessLocation::where('business_id', $business_id)->get();
 
-        $business_locations = BusinessLocation::where('business_id', $business_id)->whereNotIn('mappingSetting_ids')->get();
         return view('accounting::AutomatedMigration.create', compact('business_locations'));
     }
 
@@ -220,6 +219,7 @@ class AutomatedMigrationController extends Controller
             'payment_status' => $request->get('payment_status'),
             'method' => $request->get('method'),
             'created_by' => $user_id,
+            'business_id' => $business_id,
         ]);
 
 

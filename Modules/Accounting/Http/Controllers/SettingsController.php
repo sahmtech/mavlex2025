@@ -120,17 +120,20 @@ class SettingsController extends Controller
             abort(403, 'Unauthorized action.');
         }
         try {
-            $accounting_settings = $request->only(['journal_entry_prefix', 'transfer_prefix', 'accounting_default_map']);
+            $prefixes = $request->only(['journal_entry_prefix', 'transfer_prefix']);
 
             Business::where('id', $business_id)
-                ->update(['accounting_settings' => json_encode($accounting_settings)]);
+                ->update(['accounting_settings' => json_encode($prefixes)]);
 
-            //Update accounting_default_map for each locations
-            // $accounting_default_map = $request->get('accounting_default_map');
-            // foreach($accounting_default_map as $location_id => $details){
-            //     BusinessLocation::where('id', $location_id)
-            //         ->update(['accounting_default_map' => json_encode($details)]);
-            // }
+            // Listeners (MapSellTransaction, MapPaymentTransaction, etc.) read from each location's column — must persist here.
+            $accounting_default_map = $request->input('accounting_default_map', []);
+            if (is_array($accounting_default_map)) {
+                foreach ($accounting_default_map as $location_id => $details) {
+                    BusinessLocation::where('id', $location_id)
+                        ->where('business_id', $business_id)
+                        ->update(['accounting_default_map' => json_encode($details)]);
+                }
+            }
 
             $output = [
                 'success' => true,
