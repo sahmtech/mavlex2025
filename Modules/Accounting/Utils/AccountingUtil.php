@@ -170,6 +170,10 @@ class AccountingUtil extends Util
         if ($type == 'sell') {
             $transaction = Transaction::where('business_id', $business_id)->where('id', $id)->firstorFail();
 
+            $operation_date = ! empty($transaction->transaction_date)
+                ? Carbon::parse($transaction->transaction_date)
+                : Carbon::now();
+
             //$payment_account will increase = sales = credit
             $payment_data = [
                 'accounting_account_id' => $payment_account,
@@ -180,7 +184,7 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'payment_account',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
 
             //Deposit to will increase = debit
@@ -193,12 +197,16 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'deposit_to',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
         } elseif (in_array($type, ['purchase_payment', 'sell_payment'])) {
             $transaction_payment = TransactionPayment::where('id', $id)->where('business_id', $business_id)
                 ->firstorFail();
 
+            $operation_date = ! empty($transaction_payment->paid_on)
+                ? Carbon::parse($transaction_payment->paid_on)
+                : Carbon::now();
+
             //$payment_account will increase = sales = credit
             $payment_data = [
                 'accounting_account_id' => $payment_account,
@@ -209,7 +217,7 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'payment_account',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
 
             //Deposit to will increase = debit
@@ -222,11 +230,15 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'deposit_to',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
         } elseif ($type == 'purchase') {
             $transaction = Transaction::where('business_id', $business_id)->where('id', $id)->firstorFail();
 
+            $operation_date = ! empty($transaction->transaction_date)
+                ? Carbon::parse($transaction->transaction_date)
+                : Carbon::now();
+
             //$payment_account will increase = sales = credit
             $payment_data = [
                 'accounting_account_id' => $payment_account,
@@ -237,7 +249,7 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'payment_account',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
 
             //Deposit to will increase = debit
@@ -250,10 +262,15 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'deposit_to',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
         } elseif ($type == 'expense') {
             $transaction = Transaction::where('business_id', $business_id)->where('id', $id)->firstorFail();
+
+            $operation_date = ! empty($transaction->transaction_date)
+                ? Carbon::parse($transaction->transaction_date)
+                : Carbon::now();
+
             $payment_data = [
                 'accounting_account_id' => $payment_account,
                 'transaction_id' => $id,
@@ -263,7 +280,7 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'payment_account',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
 
             $deposit_data = [
@@ -275,7 +292,7 @@ class AccountingUtil extends Util
                 'sub_type' => $type,
                 'map_type' => 'deposit_to',
                 'created_by' => $user_id,
-                'operation_date' => \Carbon::now(),
+                'operation_date' => $operation_date,
             ];
         }
 

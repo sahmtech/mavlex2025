@@ -125,6 +125,8 @@ class ReportController extends Controller
             $accounts_array[$key] =
                 $account_type['label'];
         }
+        // Balance sheet uses equity; trial balance filter must include it or mapped movements never appear.
+        $accounts_array['equity'] = __('accounting::lang.equity');
 
         $business_id = request()->session()->get('user.business_id');
 
@@ -198,10 +200,14 @@ class ReportController extends Controller
             );
         }
 
-        $accounts->when($choose_accounts_select, function ($query, $choose_accounts_select) {
-            return $query->where(function ($query) use ($choose_accounts_select) {
+        $accounts->when(! empty($choose_accounts_select), function ($query) use ($choose_accounts_select) {
+            return $query->where(function ($q) use ($choose_accounts_select) {
                 foreach ($choose_accounts_select as $type) {
-                    $query->orWhere('accounting_accounts.account_primary_type', 'like', $type . '%');
+                    $q->orWhere('accounting_accounts.account_primary_type', 'like', $type.'%');
+                    // Default COA uses "expenses"; legacy rows may use singular "expense".
+                    if ($type === 'expenses') {
+                        $q->orWhere('accounting_accounts.account_primary_type', 'expense');
+                    }
                 }
             });
         })
