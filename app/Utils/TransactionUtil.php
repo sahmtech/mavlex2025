@@ -6834,4 +6834,79 @@ class TransactionUtil extends Util
 
         return $discount_amount;
     }
+
+    /**
+     * Generate accounting GL lines for a transaction (button «توليد قيد يومي»).
+     * Same rules as MapSellTransaction / MapPurchaseTransaction / MapExpenseTransactions (location accounting_default_map).
+     *
+     * @param  int  $transactionId
+     * @return bool
+     */
+    public function createTransactionJournal_entry($transactionId)
+    {
+        $transaction = Transaction::find($transactionId);
+        if (empty($transaction)) {
+            return false;
+        }
+
+        $user_id = auth()->id();
+        if (empty($user_id)) {
+            return false;
+        }
+
+        $business_id = $transaction->business_id;
+        $business_location = BusinessLocation::find($transaction->location_id);
+        if (empty($business_location)) {
+            return false;
+        }
+
+        $accounting_default_map = json_decode($business_location->accounting_default_map, true) ?? [];
+
+        $deposit_to = null;
+        $payment_account = null;
+        $saveType = null;
+
+        $type = $transaction->type;
+
+        if (in_array($type, ['sell', 'sell_return'], true)) {
+            $deposit_to = $accounting_default_map['sale']['deposit_to'] ?? null;
+            $payment_account = $accounting_default_map['sale']['payment_account'] ?? null;
+            $saveType = 'sell';
+        } elseif (in_array($type, ['purchase', 'purchase_return'], true)) {
+            $deposit_to = $accounting_default_map['purchases']['deposit_to'] ?? null;
+            $payment_account = $accounting_default_map['purchases']['payment_account'] ?? null;
+            $saveType = 'purchase';
+        } elseif (in_array($type, ['expense', 'expense_refund'], true)) {
+            $saveType = 'expense';
+            if (! empty($transaction->expense_category_id)) {
+                $catKey = 'expense_'.$transaction->expense_category_id;
+                $deposit_to = $accounting_default_map[$catKey]['deposit_to'] ?? null;
+                $payment_account = $accounting_default_map[$catKey]['payment_account'] ?? null;
+                if (is_null($deposit_to) || is_null($payment_account)) {
+                    $deposit_to = $accounting_default_map['expense']['deposit_to'] ?? null;
+                    $payment_account = $accounting_default_map['expense']['payment_account'] ?? null;
+                }
+            } else {
+                $deposit_to = $accounting_default_map['expense']['deposit_to'] ?? null;
+                $payment_account = $accounting_default_map['expense']['payment_account'] ?? null;
+            }
+        } else {
+            return false;
+        }
+
+        if (empty($deposit_to) || empty($payment_account)) {
+            return false;
+        }
+
+        try {
+            $accountingUtil = new \Modules\Accounting\Utils\AccountingUtil();
+            $accountingUtil->saveMap($saveType, $transaction->id, $user_id, $business_id, $deposit_to, $payment_account);
+        } catch (\Throwable $e) {
+            \Log::error('createTransactionJournal_entry: '.$e->getMessage(), ['transaction_id' => $transactionId]);
+
+            return false;
+        }
+
+        return true;
+    }
 }
