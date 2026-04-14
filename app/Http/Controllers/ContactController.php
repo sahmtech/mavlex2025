@@ -91,8 +91,10 @@ class ContactController extends Controller
             $customer_groups = CustomerGroup::forDropdown($business_id);
         }
 
+        $accounting_module_enabled = $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module');
+
         return view('contact.index')
-            ->with(compact('type', 'reward_enabled', 'customer_groups', 'users'));
+            ->with(compact('type', 'reward_enabled', 'customer_groups', 'users', 'accounting_module_enabled'));
     }
 
     /**
@@ -566,8 +568,11 @@ class ContactController extends Controller
         //Added check because $users is of no use if enable_contact_assign if false
         $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+        $accounting_module_enabled = $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module');
+        $accounting_account_initial = [];
+
         return view('contact.create')
-            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users'));
+            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users', 'accounting_module_enabled', 'accounting_account_initial'));
     }
 
     /**
@@ -627,6 +632,8 @@ class ContactController extends Controller
 
             $input['business_id'] = $business_id;
             $input['created_by'] = $request->session()->get('user.id');
+
+            $input['accounting_account_id'] = $this->resolveAccountingAccountIdForContact($business_id, $request, $input['type'] ?? null);
 
             $input['credit_limit'] = $request->input('credit_limit') != '' ? $this->commonUtil->num_uf($request->input('credit_limit')) : null;
             $input['opening_balance'] = $this->commonUtil->num_uf($request->input('opening_balance'));
@@ -759,8 +766,19 @@ class ContactController extends Controller
             //Added check because $users is of no use if enable_contact_assign if false
             $users = config('constants.enable_contact_assign') ? User::forDropdown($business_id, false, false, false, true) : [];
 
+            $accounting_module_enabled = $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module');
+            $accounting_account_initial = [];
+            if ($accounting_module_enabled && ! empty($contact->accounting_account_id) && class_exists(\Modules\Accounting\Entities\AccountingAccount::class)) {
+                $acc = \Modules\Accounting\Entities\AccountingAccount::where('business_id', $business_id)
+                    ->where('id', $contact->accounting_account_id)
+                    ->first();
+                if ($acc) {
+                    $accounting_account_initial = [$acc->id => $acc->name];
+                }
+            }
+
             return view('contact.edit')
-                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users'));
+                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users', 'accounting_module_enabled', 'accounting_account_initial'));
         }
     }
 
@@ -818,6 +836,8 @@ class ContactController extends Controller
                 $business_id = $request->session()->get('user.business_id');
 
                 $input['opening_balance'] = $this->commonUtil->num_uf($request->input('opening_balance'));
+
+                $input['accounting_account_id'] = $this->resolveAccountingAccountIdForContact($business_id, $request, $input['type'] ?? null);
 
                 if (! $this->moduleUtil->isSubscribed($business_id)) {
                     return $this->moduleUtil->expiredResponse();
@@ -1712,5 +1732,40 @@ class ContactController extends Controller
             'is_tax_number_exists' => ! empty($contacts),
             'msg' => ! empty($contacts) ? __('lang_v1.tax_number_already_registered', ['contacts' => implode(', ', $contacts), 'tax_number' => $tax_number]) : '',
         ];
+    }
+
+    /**
+     * Optional chart-of-accounts line for customers (module Accounting).
+     */
+    private function resolveAccountingAccountIdForContact($business_id, Request $request, $contactType): ?int
+    {
+        if (! in_array($contactType, ['customer', 'both'], true)) {
+            return null;
+        }
+
+        if (! $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module')) {
+            return null;
+        }
+
+        if (! class_exists(\Modules\Accounting\Entities\AccountingAccount::class)) {
+            return null;
+        }
+
+        $raw = $request->input('accounting_account_id');
+        if ($raw === null || $raw === '') {
+            return null;
+        }
+
+        $id = (int) $raw;
+        if ($id <= 0) {
+            return null;
+        }
+
+        $exists = \Modules\Accounting\Entities\AccountingAccount::where('business_id', $business_id)
+            ->where('id', $id)
+            ->where('status', 'active')
+            ->exists();
+
+        return $exists ? $id : null;
     }
 }

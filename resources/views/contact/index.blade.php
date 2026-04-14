@@ -260,6 +260,9 @@
     <!-- /.content -->
 @stop
 @section('javascript')
+    @if (!empty($accounting_module_enabled) && Route::has('accounts-dropdown'))
+        @include('accounting::accounting.common_js')
+    @endif
     @if (!empty($api_key))
         <script>
             // This example adds a search box to a map, using the Google Place Autocomplete

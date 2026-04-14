@@ -75,6 +75,25 @@
               </div>
           </div>
         </div>
+        @if (!empty($accounting_module_enabled ?? false) && Route::has('accounts-dropdown'))
+            <div class="col-md-8 customer_fields">
+                <div class="form-group">
+                    {!! Form::label('accounting_account_id', __('contact.accounting_account') . ':') !!}
+                    @show_tooltip(__('contact.accounting_account_help'))
+                    {!! Form::select(
+                        'accounting_account_id',
+                        $accounting_account_initial ?? [],
+                        $contact->accounting_account_id,
+                        [
+                            'class' => 'form-control accounts-dropdown width-100',
+                            'id' => 'contact_accounting_account_id_edit',
+                            'style' => 'width:100%;',
+                            'placeholder' => __('messages.please_select'),
+                        ],
+                    ) !!}
+                </div>
+            </div>
+        @endif
         <div class="clearfix customer_fields"></div>
         <div class="col-md-4 business" @if($contact->contact_type == 'individual' || empty($contact->contact_type)) style="display: none;"  @endif>
           <div class="form-group">

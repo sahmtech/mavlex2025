@@ -39,5 +39,7 @@ return [
     'total_purchase_paid' => 'Total Purchase Payment',
     'total_sale_paid' => 'Total Sale Payment',
     'total_sale_due' => 'Total Sale Due',
+    'accounting_account' => 'Chart of accounts (ledger account)',
+    'accounting_account_help' => 'Optional: link this customer to a receivable or sub-ledger account in the chart of accounts.',
     'customer' => 'Customer',
 ];
