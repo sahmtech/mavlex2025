@@ -104,7 +104,17 @@
                                         <td>{{ $transaction->operation_date }}</td>
                                         <td>{{ $transaction->transaction }}</td>
                                         <td>{{ $transaction->cost_center_name }}</td>
-                                        <td>{{ $transaction->note }}</td>
+                                        <td>
+                                            @php
+                                                $lineNote = trim((string) ($transaction->additional_notes ?? ''));
+                                                $headerNote = trim((string) ($transaction->note ?? ''));
+                                            @endphp
+                                            @if ($lineNote !== '' && $headerNote !== '')
+                                                {{ $lineNote }} <span class="text-muted">| {{ $headerNote }}</span>
+                                            @else
+                                                {{ $lineNote !== '' ? $lineNote : $headerNote }}
+                                            @endif
+                                        </td>
                                         <td>{{ $transaction->added_by }}</td>
                                         <td>
                                             @if ($transaction->type == 'debit')

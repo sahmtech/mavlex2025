@@ -537,6 +537,7 @@ class CoaController extends Controller
                     'accounting_accounts_transactions.type',
                     'ATM.ref_no as a_ref',
                     'ATM.note',
+                    'accounting_accounts_transactions.additional_notes',
                     'accounting_accounts_transactions.amount',
                     DB::raw("CONCAT(COALESCE(U.surname, ''),' ',COALESCE(U.first_name, ''),' ',COALESCE(U.last_name,'')) as added_by"),
                     'T.invoice_no',
@@ -574,6 +575,15 @@ class CoaController extends Controller
                     }
 
                     return $description;
+                })
+                ->editColumn('note', function ($row) {
+                    $line = trim((string) ($row->additional_notes ?? ''));
+                    $header = trim((string) ($row->note ?? ''));
+                    if ($line !== '' && $header !== '') {
+                        return $line.' | '.$header;
+                    }
+
+                    return $line !== '' ? $line : $header;
                 })
                 ->addColumn('debit', function ($row) {
                     if ($row->type == 'debit') {
@@ -649,6 +659,7 @@ class CoaController extends Controller
                 'ATM.id as id',
                 'cc.ar_name as cost_center_name',
                 'ATM.note',
+                'accounting_accounts_transactions.additional_notes',
                 'accounting_accounts_transactions.amount',
                 DB::raw("CONCAT(COALESCE(u.first_name, ''),' ',COALESCE(u.last_name,'')) as added_by"),
                 'T.invoice_no',
