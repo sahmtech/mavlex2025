@@ -5,6 +5,7 @@
     if(isset($quick_add)){
       $form_id = 'quick_add_contact';
     }
+    $coa_quick_add_parent_id = $coa_quick_add_parent_id ?? null;
 
     if(isset($store_action)) {
       $url = $store_action;
@@ -77,17 +78,28 @@
                     <div class="form-group">
                         {!! Form::label('accounting_account_id', __('contact.accounting_account') . ':') !!}
                         @show_tooltip(__('contact.accounting_account_help'))
-                        {!! Form::select(
-                            'accounting_account_id',
-                            $accounting_account_initial ?? [],
-                            null,
-                            [
-                                'class' => 'form-control accounts-dropdown width-100',
-                                'id' => 'contact_accounting_account_id_create',
-                                'style' => 'width:100%;',
-                                'placeholder' => __('messages.please_select'),
-                            ],
-                        ) !!}
+                        <div class="input-group">
+                            {!! Form::select(
+                                'accounting_account_id',
+                                $accounting_account_initial ?? [],
+                                null,
+                                [
+                                    'class' => 'form-control accounts-dropdown width-100',
+                                    'id' => 'contact_accounting_account_id_create',
+                                    'style' => 'width:100%;',
+                                    'placeholder' => __('messages.please_select'),
+                                ],
+                            ) !!}
+                            @if (!empty($coa_quick_add_parent_id) && (auth()->user()->can('accounting.manage_accounts') || auth()->user()->can('superadmin') || auth()->user()->can('Admin#' . session('user.business_id'))))
+                                <span class="input-group-btn">
+                                    <button type="button" class="btn btn-default btn-modal" data-container=".coa_quick_add_modal"
+                                        data-href="{{ action([\Modules\Accounting\Http\Controllers\CoaController::class, 'open_create_dialog'], [$coa_quick_add_parent_id]) }}"
+                                        title="{{ __('contact.add_chart_account') }}">
+                                        <i class="fas fa-plus"></i> @lang('contact.add_chart_account')
+                                    </button>
+                                </span>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endif

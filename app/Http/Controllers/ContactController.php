@@ -570,9 +570,10 @@ class ContactController extends Controller
 
         $accounting_module_enabled = $this->moduleUtil->hasThePermissionInSubscription($business_id, 'accounting_module');
         $accounting_account_initial = [];
+        $coa_quick_add_parent_id = $this->defaultCoaParentAccountIdForQuickAdd($business_id);
 
         return view('contact.create')
-            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users', 'accounting_module_enabled', 'accounting_account_initial'));
+            ->with(compact('types', 'customer_groups', 'selected_type', 'module_form_parts', 'users', 'accounting_module_enabled', 'accounting_account_initial', 'coa_quick_add_parent_id'));
     }
 
     /**
@@ -777,8 +778,10 @@ class ContactController extends Controller
                 }
             }
 
+            $coa_quick_add_parent_id = $this->defaultCoaParentAccountIdForQuickAdd($business_id);
+
             return view('contact.edit')
-                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users', 'accounting_module_enabled', 'accounting_account_initial'));
+                ->with(compact('contact', 'types', 'customer_groups', 'opening_balance', 'users', 'accounting_module_enabled', 'accounting_account_initial', 'coa_quick_add_parent_id'));
         }
     }
 
@@ -1732,6 +1735,44 @@ class ContactController extends Controller
             'is_tax_number_exists' => ! empty($contacts),
             'msg' => ! empty($contacts) ? __('lang_v1.tax_number_already_registered', ['contacts' => implode(', ', $contacts), 'tax_number' => $tax_number]) : '',
         ];
+    }
+
+    /**
+     * Parent account used to add a new child account from the contact form (COA tree requires a parent).
+     */
+    private function defaultCoaParentAccountIdForQuickAdd($business_id): ?int
+    {
+        if (! class_exists(\Modules\Accounting\Entities\AccountingAccount::class)) {
+            return null;
+        }
+
+        $base = \Modules\Accounting\Entities\AccountingAccount::where('business_id', $business_id)
+            ->where('status', 'active');
+
+        $preferred = (clone $base)->where(function ($q) {
+            $q->where('name', 'like', '%ذمم%')
+                ->orWhere('name', 'like', '%مدين%')
+                ->orWhere('name', 'like', '%Receivable%')
+                ->orWhere('name', 'like', '%receivable%');
+        })->orderBy('id')->first();
+
+        if ($preferred) {
+            return (int) $preferred->id;
+        }
+
+        $withChildren = \Modules\Accounting\Entities\AccountingAccount::where('business_id', $business_id)
+            ->where('status', 'active')
+            ->whereHas('child_accounts')
+            ->orderBy('id')
+            ->first();
+
+        if ($withChildren) {
+            return (int) $withChildren->id;
+        }
+
+        $fallback = (clone $base)->orderBy('id')->first();
+
+        return $fallback ? (int) $fallback->id : null;
     }
 
     /**

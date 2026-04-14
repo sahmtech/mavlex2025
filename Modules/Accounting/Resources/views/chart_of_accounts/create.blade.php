@@ -95,7 +95,7 @@
                         <p class="help-block">@lang('accounting::lang.gl_code_help')</p>
                     </div> --}}
 
-                    <input name="parent_account_id" value="{{ $parent_accounts }}" hidden />
+                    <input name="parent_account_id" value="{{ $parent_accounts ?? '' }}" hidden />
 
 
                 </div>

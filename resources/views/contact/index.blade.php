@@ -253,6 +253,8 @@
 
         <div class="modal fade contact_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
         </div>
+        <div class="modal fade coa_quick_add_modal" tabindex="-1" role="dialog" aria-labelledby="coaQuickAddModalLabel">
+        </div>
         <div class="modal fade pay_contact_due_modal" tabindex="-1" role="dialog" aria-labelledby="gridSystemModalLabel">
         </div>
 
@@ -262,6 +264,41 @@
 @section('javascript')
     @if (!empty($accounting_module_enabled) && Route::has('accounts-dropdown'))
         @include('accounting::accounting.common_js')
+        <script type="text/javascript">
+            $(document).on('submit', '.coa_quick_add_modal form#create_client_form', function(e) {
+                e.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    method: 'POST',
+                    url: form.attr('action'),
+                    dataType: 'json',
+                    data: form.serialize(),
+                    success: function(result) {
+                        if (result.success == true && result.data && result.data.id) {
+                            toastr.success(result.msg);
+                            var label = result.data.name;
+                            $('#contact_accounting_account_id_create, #contact_accounting_account_id_edit').each(function() {
+                                var $s = $(this);
+                                if ($s.length) {
+                                    var o = new Option(label, result.data.id, true, true);
+                                    $s.append(o).val(result.data.id).trigger('change');
+                                }
+                            });
+                            $('.coa_quick_add_modal').modal('hide');
+                        } else {
+                            toastr.error(result.msg || '{{ __('messages.something_went_wrong') }}');
+                        }
+                    },
+                    error: function(xhr) {
+                        var msg = '{{ __('messages.something_went_wrong') }}';
+                        if (xhr.responseJSON && xhr.responseJSON.msg) {
+                            msg = xhr.responseJSON.msg;
+                        }
+                        toastr.error(msg);
+                    }
+                });
+            });
+        </script>
     @endif
     @if (!empty($api_key))
         <script>

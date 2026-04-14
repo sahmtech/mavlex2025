@@ -346,10 +346,28 @@ class CoaController extends Controller
             }
 
             DB::commit();
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'msg' => __('lang_v1.added_success'),
+                    'data' => [
+                        'id' => $account->id,
+                        'name' => $account->name,
+                    ],
+                ]);
+            }
         } catch (\Exception $e) {
             DB::rollBack();
 
             \Log::emergency("File:" . $e->getFile() . "Line:" . $e->getLine() . "Message:" . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
+                ], 422);
+            }
+
             return redirect()->back()->with([
                 'success' => false,
                 'msg' => __("messages.something_went_wrong")
