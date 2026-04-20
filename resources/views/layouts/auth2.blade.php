@@ -7,12 +7,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title') - {{ config('app.name', 'POS') }}</title>
 
-    {{-- تضمين ملفات الـ CSS الأساسية للنظام --}}
-    @include('layouts.partials.css')
+     @include('layouts.partials.css')
     @include('layouts.partials.extracss_auth')
     
-    {{-- إضافة خط Cairo لتحسين مظهر اللغة العربية --}}
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
 
     <style>
         * {
@@ -20,7 +18,6 @@
         }
 
         body {
-            /* استخدم رابط الصورة الخاص بك */
             background: url("{{ asset('img/mavlex-background.jpg.jpeg') }}") no-repeat center center fixed;
             background-size: cover;
             min-height: 100vh;
@@ -31,8 +28,7 @@
             overflow-x: hidden;
         }
 
-        /* طبقة التغبيش فوق الخلفية */
-        body::before {
+         body::before {
             content: "";
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -44,7 +40,7 @@
             position: relative; 
             z-index: 10; 
             width: 100%; 
-            padding-top: 80px; /* لترك مساحة للهيدر */
+            padding-top: 80px; 
         }
         
         .auth-header {
@@ -57,8 +53,7 @@
             z-index: 100;
         }
 
-        /* تنسيق "الزجاج" الحديث - Glassmorphism */
-        .glass-container {
+         .glass-container {
             background: rgba(255, 255, 255, 0.12) !important;
             backdrop-filter: blur(15px) saturate(150%);
             -webkit-backdrop-filter: blur(15px) saturate(150%);
@@ -67,7 +62,6 @@
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3) !important;
         }
 
-        /* تحسين مظهر حقول الإدخال */
         .form-control {
             background: rgba(255, 255, 255, 0.95) !important;
             border: none !important;
@@ -75,7 +69,6 @@
             font-weight: 600 !important;
         }
 
-        /* زر التسجيل العلوي */
         .btn-register-top {
             text-decoration: none !important;
             border: 2px solid #ffffff;
@@ -112,7 +105,6 @@
     @inject('request', 'Illuminate\Http\Request')
 
     <header class="auth-header">
-        {{-- تم وضع زر اللغة هنا مكان اللوغو --}}
         <div class="language-wrapper">
              @include('layouts.partials.language_btn')
         </div>
@@ -130,10 +122,8 @@
         @yield('content')
     </div>
 
-    {{-- استدعاء ملفات الـ JS الأساسية --}}
     @include('layouts.partials.javascripts')
     
-    {{-- تعديل بسيط لمنع خطأ الـ Asset Variable --}}
     <script src="{{ asset('js/login.js?v=' . ($asset_v ?? '1.0')) }}"></script>
     
     @yield('javascript')

@@ -376,7 +376,7 @@ class SellReturnController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        try {
+        // try {
             $input = $request->except('_token');
 
             if (!empty($input['products'])) {
@@ -430,15 +430,15 @@ class SellReturnController extends Controller
                     'receipt' => $receipt,
                 ];
             }
-        } catch (\Exception $e) {
-            DB::rollBack();
-            \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
+        // } catch (\Exception $e) {
+        //     DB::rollBack();
+        //     \Log::emergency('File:' . $e->getFile() . 'Line:' . $e->getLine() . 'Message:' . $e->getMessage());
 
-            return [
-                'success' => 0,
-                'msg' => __('messages.something_went_wrong'),
-            ];
-        }
+        //     return [
+        //         'success' => 0,
+        //         'msg' => __('messages.something_went_wrong'),
+        //     ];
+        // }
     }
 
     /**
