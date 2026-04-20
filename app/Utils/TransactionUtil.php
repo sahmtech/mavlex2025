@@ -1769,6 +1769,7 @@ class TransactionUtil extends Util
     }
 
     if ($transaction->status == 'final') {
+        dd($qr_code_text);
         $output['qr_code_text'] = $qr_code_text;
     }
 }
