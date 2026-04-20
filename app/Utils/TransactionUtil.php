@@ -1765,7 +1765,7 @@ class TransactionUtil extends Util
             $qr_code_details[] = $business_details->tax_number_1;
         }
 
-       $qr_code_text = implode("\n", $qr_code_details);
+       $qr_code_text = implode(" ", $qr_code_details);
     }
 
     if ($transaction->status == 'final') {
