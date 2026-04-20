@@ -1728,21 +1728,50 @@ class TransactionUtil extends Util
                 $output['qr_code_text'] = $qr_code_text;
             }
             // add this seprate for sell retuen qr text of zatca
+        // } else if (in_array($transaction_type, ['sell_return'])) {
+
+        //     $output['show_qr_code'] = ! empty($il->show_qr_code) ? true : false;
+        //     $zatca_qr = ! empty($il->common_settings['zatca_qr']) ? true : false;
+        //     if ($zatca_qr) {
+        //         $total_order_tax =  $total_line_taxes;
+        //         // $total_order_tax = $transaction->tax_amount + $total_line_taxes;
+        //         $zatca_phase = ! empty($il->common_settings['zatca_phase']) ? $il->common_settings['zatca_phase'] : '';
+        //         $qr_code_text = $this->_zatca_qr_text($business_details->name, $business_details->tax_number_1, $transaction, $total_order_tax, $zatca_phase);
+        //     }
+
+        //     if ($transaction->status == 'final') {
+        //         $output['qr_code_text'] = $qr_code_text;
+        //     }
+        // }
+
         } else if (in_array($transaction_type, ['sell_return'])) {
 
-            $output['show_qr_code'] = ! empty($il->show_qr_code) ? true : false;
-            $zatca_qr = ! empty($il->common_settings['zatca_qr']) ? true : false;
-            if ($zatca_qr) {
-                $total_order_tax =  $total_line_taxes;
-                // $total_order_tax = $transaction->tax_amount + $total_line_taxes;
-                $zatca_phase = ! empty($il->common_settings['zatca_phase']) ? $il->common_settings['zatca_phase'] : '';
-                $qr_code_text = $this->_zatca_qr_text($business_details->name, $business_details->tax_number_1, $transaction, $total_order_tax, $zatca_phase);
-            }
+    $output['show_qr_code'] = ! empty($il->show_qr_code) ? true : false;
+    $zatca_qr = ! empty($il->common_settings['zatca_qr']) ? true : false;
 
-            if ($transaction->status == 'final') {
-                $output['qr_code_text'] = $qr_code_text;
-            }
+    if ($zatca_qr) {
+        $total_order_tax = $total_line_taxes;
+        $zatca_phase = ! empty($il->common_settings['zatca_phase']) ? $il->common_settings['zatca_phase'] : '';
+        $qr_code_text = $this->_zatca_qr_text($business_details->name, $business_details->tax_number_1, $transaction, $total_order_tax, $zatca_phase);
+    } else {
+        $qr_code_details = [
+            $business_details->name,                     
+            $transaction->invoice_no,                    
+            $output['invoice_date'],                    
+            $output['total']                            
+        ];
+
+        if (!empty($business_details->tax_number_1)) {
+            $qr_code_details[] = $business_details->tax_number_1;
         }
+
+        $qr_code_text = implode(' ', $qr_code_details);
+    }
+
+    if ($transaction->status == 'final') {
+        $output['qr_code_text'] = $qr_code_text;
+    }
+}
         //Module related information.
         $il->module_info = ! empty($il->module_info) ? json_decode($il->module_info, true) : [];
         if (! empty($il->module_info['tables']) && $this->isModuleEnabled('tables')) {
