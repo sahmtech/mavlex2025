@@ -188,11 +188,26 @@
             @endphp
             <tr>
                 <td class="center">{{ $loop->iteration }}</td>
-                <td>
+                {{-- <td>
                     {!! $line['name'] !!} 
                     @if(!empty($line['sub_sku'])) <br><small>({{ $line['sub_sku'] }})</small> @endif
                 </td>
-                <td class="center">{{ $line['quantity'] }}</td>
+                <td class="center">{{ $line['quantity'] }}</td> --}}
+                <td>
+                    {!! $line['name'] !!}
+                    <br>
+                    {!! $line['sub_sku'] ?? '' !!}
+                   
+                     @if(!empty($line['product_description']))
+                            <br><small>{!!$line['product_description']!!}</small> <br>
+                        @endif
+                        @if(!empty($line['sell_line_note']))
+                            <br><small>{!!$line['sell_line_note']!!}</small> <br>
+                        @endif
+                </td>
+                <td>
+                    {!! $line['quantity'] ?? '' !!} ({{ $line['units'] ?? '' }})
+                </td>
                 <td class="ltr">@format_currency($line['unit_price_before_discount_uf'])</td>
                 <td class="ltr">@format_currency($discount)</td>
                 <td class="center">{{ $line['tax_percent'] }}%</td>
