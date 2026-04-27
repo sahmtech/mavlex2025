@@ -63,6 +63,7 @@ class AttendanceController extends Controller
                                 'clock_in_time',
                                 'clock_out_time',
                                 'clock_in_note',
+                                'clock_in_geofence_status',
                                 'clock_out_note',
                                 'ip_address',
                                 DB::raw('DATE(clock_in_time) as date'),
@@ -120,14 +121,26 @@ class AttendanceController extends Controller
                     ->editColumn('clock_in', function ($row) {
                         $html = $this->moduleUtil->format_date($row->clock_in_time, true);
                         if (! empty($row->clock_in_location)) {
-                            $html .= '<br>'.$row->clock_in_location.'<br>';
-                        }
-
-                        if (! empty($row->clock_in_note)) {
-                            $html .= '<br>'.$row->clock_in_note.'<br>';
+                            $html .= '<br>'.e($row->clock_in_location).'<br>';
                         }
 
                         return $html;
+                    })
+                    ->editColumn('clock_in_note', function ($row) {
+                        return ! empty($row->clock_in_note)
+                            ? nl2br(e($row->clock_in_note))
+                            : '<span class="text-muted">'.e(__('lang_v1.none')).'</span>';
+                    })
+                    ->addColumn('geofence_zone', function ($row) {
+                        $s = $row->clock_in_geofence_status ?? null;
+                        if (empty($s) || $s === 'na') {
+                            return '<span class="text-muted">'.__('essentials::lang.geofence_not_applicable').'</span>';
+                        }
+                        if ($s === 'inside') {
+                            return '<span class="label label-success">'.e(__('essentials::lang.geofence_inside')).'</span>';
+                        }
+
+                        return '<span class="label label-warning">'.e(__('essentials::lang.geofence_outside')).'</span>';
                     })
                     ->editColumn('clock_out', function ($row) {
                         $html = $this->moduleUtil->format_date($row->clock_out_time, true);
@@ -142,7 +155,7 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('date', '{{@format_date($date)}}')
-                    ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out'])
+                    ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out', 'clock_in_note', 'geofence_zone'])
                     ->filterColumn('user', function ($query, $keyword) {
                         $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
                     })
@@ -374,6 +387,14 @@ class AttendanceController extends Controller
                     'clock_in_note' => $request->input('clock_in_note'),
                     'ip_address' => $this->moduleUtil->getUserIpAddr(),
                     'clock_in_location' => $request->input('clock_in_out_location'),
+                    'clock_in_geofence_status' => $this->essentialsUtil->getClockInGeofenceStatus(
+                        $business_id,
+                        auth()->user(),
+                        $request->input('clock_in_latitude'),
+                        $request->input('clock_in_longitude'),
+                        $request->input('clock_in_note'),
+                        null
+                    ),
                 ];
 
                 $output = $this->essentialsUtil->clockin($data, $settings);

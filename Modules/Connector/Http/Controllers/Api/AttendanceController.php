@@ -204,6 +204,15 @@ class AttendanceController extends ApiController
                 ], (int) ($geo['status'] ?? 400));
             }
 
+            $clockInGeofenceStatus = $essentialsUtil->getClockInGeofenceStatus(
+                $business_id,
+                $user,
+                $request->input('latitude'),
+                $request->input('longitude'),
+                $request->input('clock_in_note'),
+                $request->input('location_id')
+            );
+
             $data = [
                 'business_id' => $business_id,
                 // Match web attendance: clock-in for authenticated user unless explicitly overridden.
@@ -219,6 +228,8 @@ class AttendanceController extends ApiController
                     $data['clock_in_image'] = $path;
                 }
             }
+
+            $data['clock_in_geofence_status'] = $clockInGeofenceStatus;
 
             if (! empty($settings['is_location_required'])) {
                 $long = $request->input('longitude');

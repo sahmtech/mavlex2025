@@ -781,4 +781,43 @@ class EssentialsUtil extends Util
 
         return null;
     }
+
+    /**
+     * Persisted on attendance row: na = no geofence or no coordinates, inside, outside.
+     *
+     * @param  int|string|null  $locationId
+     */
+    public function getClockInGeofenceStatus(int $businessId, \App\User $user, $latitude, $longitude, $clockInNote, $locationId): string
+    {
+        $hasExplicitLocation = $locationId !== null && $locationId !== '';
+        $bl = $this->resolveClockInBusinessLocation($businessId, $locationId);
+        if ($hasExplicitLocation && $bl === null) {
+            return 'na';
+        }
+        if ($bl === null) {
+            return 'na';
+        }
+
+        $permitted = $user->permitted_locations($businessId);
+        if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
+            return 'na';
+        }
+
+        if (! $bl->hasActiveAttendanceGeofence()) {
+            return 'na';
+        }
+
+        if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
+            return 'na';
+        }
+
+        $lat = (float) $latitude;
+        $lng = (float) $longitude;
+
+        if ($bl->isCoordinateInsideAttendanceGeofence($lat, $lng)) {
+            return 'inside';
+        }
+
+        return 'outside';
+    }
 }

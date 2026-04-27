@@ -95,6 +95,8 @@
 
                             $("input#clock_in_out_location").val(result.address);
                             $("span.clock_in_out_location").text(result.address);
+                            $("input#clock_in_latitude").val(latitude);
+                            $("input#clock_in_longitude").val(longitude);
                             $("div.ask_location").hide();
                         } else if (typeof result.error_message !== 'undefined') {
                             console.log(result.error_message);
