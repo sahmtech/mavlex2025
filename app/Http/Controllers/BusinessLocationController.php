@@ -10,6 +10,7 @@ use App\SellingPriceGroup;
 use App\Utils\ModuleUtil;
 use App\Utils\Util;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Permission;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -168,6 +169,14 @@ class BusinessLocationController extends Controller
             $input = $request->only(['name', 'landmark', 'city', 'state', 'country', 'zip_code', 'invoice_scheme_id',
                 'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id']);
 
+            $geofence = $this->geofenceInputOrError($request);
+            if (isset($geofence['error'])) {
+                return ['success' => false,
+                    'msg' => $geofence['error'],
+                ];
+            }
+            $input = array_merge($input, $geofence['data']);
+
             $input['business_id'] = $business_id;
 
             $input['default_payment_accounts'] = ! empty($input['default_payment_accounts']) ? json_encode($input['default_payment_accounts']) : null;
@@ -272,6 +281,14 @@ class BusinessLocationController extends Controller
                 'zip_code', 'invoice_scheme_id',
                 'invoice_layout_id', 'mobile', 'alternate_number', 'email', 'website', 'custom_field1', 'custom_field2', 'custom_field3', 'custom_field4', 'location_id', 'selling_price_group_id', 'default_payment_accounts', 'featured_products', 'sale_invoice_layout_id', 'sale_invoice_scheme_id' ]);
 
+            $geofence = $this->geofenceInputOrError($request);
+            if (isset($geofence['error'])) {
+                return ['success' => false,
+                    'msg' => $geofence['error'],
+                ];
+            }
+            $input = array_merge($input, $geofence['data']);
+
             $business_id = $request->session()->get('user.business_id');
 
             $input['default_payment_accounts'] = ! empty($input['default_payment_accounts']) ? json_encode($input['default_payment_accounts']) : null;
@@ -371,5 +388,51 @@ class BusinessLocationController extends Controller
         }
 
         return $output;
+    }
+
+    /**
+     * @return array
+     */
+    protected function geofenceInputOrError(Request $request)
+    {
+        $enabled = ! empty($request->input('attendance_geofence_enabled'));
+
+        if (! $enabled) {
+            return [
+                'data' => [
+                    'attendance_geofence_enabled' => 0,
+                    'attendance_geofence_latitude' => null,
+                    'attendance_geofence_longitude' => null,
+                    'attendance_geofence_radius_meters' => null,
+                ],
+            ];
+        }
+
+        $validator = Validator::make(
+            $request->all(),
+            [
+                'attendance_geofence_latitude' => 'required|numeric|between:-90,90',
+                'attendance_geofence_longitude' => 'required|numeric|between:-180,180',
+                'attendance_geofence_radius_meters' => 'required|integer|min:1|max:1000000',
+            ],
+            [
+                'attendance_geofence_latitude.required' => __('business.attendance_geofence_lat_required'),
+                'attendance_geofence_longitude.required' => __('business.attendance_geofence_lng_required'),
+                'attendance_geofence_radius_meters.required' => __('business.attendance_geofence_radius_required'),
+            ]
+        );
+
+        if ($validator->fails()) {
+            return ['error' => $validator->errors()->first()];
+        }
+
+        return [
+            'data' => [
+                'attendance_geofence_enabled' => 1,
+                'attendance_geofence_latitude' => $request->input('attendance_geofence_latitude'),
+                'attendance_geofence_longitude' => $request->input('attendance_geofence_longitude'),
+                'attendance_geofence_radius_meters' => (int) $request->input('attendance_geofence_radius_meters'),
+            ],
+        ];
     }
 }

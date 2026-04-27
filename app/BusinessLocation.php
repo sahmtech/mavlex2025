@@ -21,7 +21,58 @@ class BusinessLocation extends Model
      */
     protected $casts = [
         'featured_products' => 'array',
+        'attendance_geofence_enabled' => 'boolean',
     ];
+
+    /**
+     * Whether this location has a configured clock-in geofence (center + radius).
+     */
+    public function hasActiveAttendanceGeofence(): bool
+    {
+        if (empty($this->attendance_geofence_enabled)) {
+            return false;
+        }
+        if ($this->attendance_geofence_latitude === null || $this->attendance_geofence_longitude === null) {
+            return false;
+        }
+        $r = (int) ($this->attendance_geofence_radius_meters ?? 0);
+
+        return $r > 0;
+    }
+
+    /**
+     * Great-circle distance in meters (Haversine).
+     */
+    public static function distanceMetersBetweenCoordinates(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earth = 6371000.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) * sin($dLat / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earth * $c;
+    }
+
+    /**
+     * True if the given WGS-84 point lies inside the configured radius from the zone center.
+     */
+    public function isCoordinateInsideAttendanceGeofence(float $latitude, float $longitude): bool
+    {
+        if (! $this->hasActiveAttendanceGeofence()) {
+            return false;
+        }
+
+        $d = self::distanceMetersBetweenCoordinates(
+            (float) $this->attendance_geofence_latitude,
+            (float) $this->attendance_geofence_longitude,
+            $latitude,
+            $longitude
+        );
+
+        return $d <= (int) $this->attendance_geofence_radius_meters;
+    }
 
     /**
      * Return list of locations for a business

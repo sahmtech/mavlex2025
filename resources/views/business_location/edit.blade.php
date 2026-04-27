@@ -159,6 +159,36 @@
                 <div class="clearfix"></div>
                 <hr>
                 <div class="col-sm-12">
+                    <h5>@lang('business.attendance_geofence_section')</h5>
+                    <p class="help-block">@lang('business.attendance_geofence_help')</p>
+                </div>
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        {!! Form::checkbox('attendance_geofence_enabled', 1, (bool) old('attendance_geofence_enabled', $location->attendance_geofence_enabled ?? false), ['class' => 'input-icheck', 'id' => 'attendance_geofence_enabled_edit']); !!}
+                        <label for="attendance_geofence_enabled_edit" class="tw-mb-0">@lang('business.attendance_geofence_enable')</label>
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('attendance_geofence_latitude', __('business.attendance_geofence_latitude')) !!}
+                        {!! Form::number('attendance_geofence_latitude', old('attendance_geofence_latitude', $location->attendance_geofence_latitude ?? ''), ['class' => 'form-control', 'step' => 'any']); !!}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('attendance_geofence_longitude', __('business.attendance_geofence_longitude')) !!}
+                        {!! Form::number('attendance_geofence_longitude', old('attendance_geofence_longitude', $location->attendance_geofence_longitude ?? ''), ['class' => 'form-control', 'step' => 'any']); !!}
+                    </div>
+                </div>
+                <div class="col-sm-4">
+                    <div class="form-group">
+                        {!! Form::label('attendance_geofence_radius_meters', __('business.attendance_geofence_radius_meters')) !!}
+                        {!! Form::number('attendance_geofence_radius_meters', old('attendance_geofence_radius_meters', $location->attendance_geofence_radius_meters ?? ''), ['class' => 'form-control', 'min' => 1]); !!}
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+                <hr>
+                <div class="col-sm-12">
                     <div class="form-group">
                         {!! Form::label('featured_products', __('lang_v1.pos_screen_featured_products') . ':') !!} @show_tooltip(__('lang_v1.featured_products_help'))
                         {!! Form::select('featured_products[]', $featured_products, $location->featured_products, ['class' => 'form-control',
