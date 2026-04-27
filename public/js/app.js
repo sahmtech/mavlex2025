@@ -1296,33 +1296,40 @@ $(document).ready(function() {
         }
     });
 
-    // Business location: draw attendance geofence on Google Maps (modal forms)
-    function loadGoogleMapsForLocationGeofence(apiKey, onReady) {
-        if (window.google && window.google.maps) {
+    // Business location: attendance geofence on map (Leaflet + OpenStreetMap — no API key)
+    function loadLeafletForLocationGeofence(onReady) {
+        if (window.L && typeof L.map === 'function') {
             onReady();
             return;
         }
-        if (!apiKey) {
+        if (window._leafletBlQueueLoading) {
+            window._leafletBlQueue = window._leafletBlQueue || [];
+            window._leafletBlQueue.push(onReady);
             return;
         }
-        if (window._gmapBlQueueLoading) {
-            window._gmapBlQueue = window._gmapBlQueue || [];
-            window._gmapBlQueue.push(onReady);
-            return;
+        window._leafletBlQueueLoading = true;
+        window._leafletBlQueue = [onReady];
+        if (!document.querySelector('link[href*="leaflet"]')) {
+            var link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.crossOrigin = '';
+            document.head.appendChild(link);
         }
-        window._gmapBlQueueLoading = true;
-        window._gmapBlQueue = [onReady];
         var s = document.createElement('script');
-        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey);
+        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         s.async = true;
-        s.defer = true;
         s.onload = function() {
-            window._gmapBlQueueLoading = false;
-            var q = window._gmapBlQueue || [];
-            window._gmapBlQueue = null;
+            window._leafletBlQueueLoading = false;
+            var q = window._leafletBlQueue || [];
+            window._leafletBlQueue = null;
             for (var i = 0; i < q.length; i++) {
                 q[i]();
             }
+        };
+        s.onerror = function() {
+            window._leafletBlQueueLoading = false;
+            window._leafletBlQueue = null;
         };
         document.head.appendChild(s);
     }
@@ -1343,39 +1350,35 @@ $(document).ready(function() {
             rad = 200;
             $rad.val(String(rad));
         }
-        var center = { lat: lat, lng: lng };
-        var map = new google.maps.Map(container, {
-            zoom: 15,
-            center: center,
-            mapTypeControl: true,
-            streetViewControl: false,
-        });
-        var marker = new google.maps.Marker({
-            position: center,
-            map: map,
-            draggable: true,
-        });
-        var circle = new google.maps.Circle({
-            strokeColor: '#2563eb',
-            strokeOpacity: 0.95,
-            strokeWeight: 2,
+        var map = L.map(container, { scrollWheelZoom: true }).setView([lat, lng], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+
+        var circle = L.circle([lat, lng], {
+            radius: rad,
+            color: '#2563eb',
+            weight: 2,
             fillColor: '#2563eb',
             fillOpacity: 0.12,
-            map: map,
-            center: center,
-            radius: rad,
-        });
+        }).addTo(map);
+
+        var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
         function syncFromMarker() {
-            var p = marker.getPosition();
-            $lat.val(p.lat().toFixed(7));
-            $lng.val(p.lng().toFixed(7));
-            circle.setCenter(p);
+            var p = marker.getLatLng();
+            $lat.val(p.lat.toFixed(7));
+            $lng.val(p.lng.toFixed(7));
+            circle.setLatLng(p);
         }
-        marker.addListener('dragend', syncFromMarker);
-        map.addListener('click', function(e) {
-            marker.setPosition(e.latLng);
+
+        marker.on('dragend', syncFromMarker);
+        map.on('click', function(e) {
+            marker.setLatLng(e.latlng);
             syncFromMarker();
         });
+
         $rad.off('input.geofenceMap').on('input.geofenceMap', function() {
             var r = parseInt($(this).val(), 10);
             if (!isNaN(r) && r >= 1) {
@@ -1388,17 +1391,14 @@ $(document).ready(function() {
                 var la = parseFloat($lat.val());
                 var ln = parseFloat($lng.val());
                 if (!isNaN(la) && !isNaN(ln) && la >= -90 && la <= 90 && ln >= -180 && ln <= 180) {
-                    var pos = new google.maps.LatLng(la, ln);
-                    marker.setPosition(pos);
-                    circle.setCenter(pos);
-                    map.panTo(pos);
+                    var p = L.latLng(la, ln);
+                    marker.setLatLng(p);
+                    circle.setLatLng(p);
+                    map.panTo(p);
                 }
             });
         setTimeout(function() {
-            google.maps.event.trigger(map, 'resize');
-            if (marker.getPosition()) {
-                map.setCenter(marker.getPosition());
-            }
+            map.invalidateSize();
         }, 400);
     }
 
@@ -1417,21 +1417,18 @@ $(document).ready(function() {
         if (!$lat.length || !$lng.length || !$rad.length) {
             return;
         }
-        var key = $el.data('google-maps-key') || '';
-        if (!key) {
-            $el
-                .empty()
-                .html(
+        $el.empty().css('background', '#e8e8e8');
+        loadLeafletForLocationGeofence(function() {
+            if (typeof L === 'undefined') {
+                $el.html(
                     '<p class="text-muted" style="padding:1rem;">' +
-                        (typeof LANG !== 'undefined' && LANG.geofence_map_no_key
-                            ? LANG.geofence_map_no_key
-                            : 'Add GOOGLE_MAP_API_KEY in .env to show the map.') +
+                        (typeof LANG !== 'undefined' && LANG.map_load_error
+                            ? LANG.map_load_error
+                            : 'Could not load map tiles.') +
                         '</p>'
                 );
-            return;
-        }
-        $el.empty().css('background', '#e8e8e8');
-        loadGoogleMapsForLocationGeofence(key, function() {
+                return;
+            }
             setTimeout(function() {
                 if (!$el.is(':visible')) {
                     return;

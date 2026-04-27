@@ -158,4 +158,5 @@ LANG = {
     'tax_number_already_exists' : 'This tax number already exists',
     'missing_skus' : 'Missing SKUs',
     'geofence_map_no_key' : 'Add GOOGLE_MAP_API_KEY in .env to show the map for the attendance zone.',
+    'map_load_error' : 'Could not load the map. Check your network connection.',
 };

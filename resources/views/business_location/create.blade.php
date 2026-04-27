@@ -171,7 +171,7 @@
                 <div class="col-sm-12">
                     <div class="form-group">
                         <label>@lang('business.attendance_geofence_map')</label>
-                        <div class="attendance-geofence-map" data-google-maps-key="{{ env('GOOGLE_MAP_API_KEY') }}"
+                        <div class="attendance-geofence-map"
                             style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 4px; background: #e8e8e8;"></div>
                         <p class="help-block small">@lang('business.attendance_geofence_map_help')</p>
                     </div>

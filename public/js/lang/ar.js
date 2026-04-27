@@ -136,4 +136,5 @@ LANG = {
     'tax_number_already_exists' : 'رقم الضريبة هذا موجود بالفعل',
     'missing_skus' : 'أكواد SKU مفقودة',
     'geofence_map_no_key' : 'أضف GOOGLE_MAP_API_KEY في ملف .env لعرض خريطة نطاق الحضور.',
+    'map_load_error' : 'تعذر تحميل الخريطة. تحقق من الاتصال بالإنترنت.',
 };

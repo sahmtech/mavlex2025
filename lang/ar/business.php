@@ -85,7 +85,7 @@ return [
     "attendance_geofence_lng_required" => "خط الطول مطلوب عند تفعيل النطاق.",
     "attendance_geofence_radius_required" => "نصف القطر بالمتر مطلوب عند تفعيل النطاق.",
     "attendance_geofence_map" => "النطاق على الخريطة",
-    "attendance_geofence_map_help" => "انقر على الخريطة لتحديد المركز، أو اسحب العلامة. الدائرة توضح النطاق المسموح ويمكنك تعديل الأرقام أسفلها.",
+    "attendance_geofence_map_help" => "الخريطة: OpenStreetMap (لا تحتاج مفتاح Google). انقر لتحديد المركز أو اسحب العلامة، أو عدّل الأرقام أسفلها.",
     "location" => "الفرع",
     "already_registered" => "مسجل بالفعل؟",
     "sign_in" => "تسجيل الدخول",
