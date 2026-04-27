@@ -2,7 +2,9 @@
 
 namespace Modules\Essentials\Utils;
 
+use App\BusinessLocation;
 use App\Transaction;
+use App\User;
 use App\Utils\Util;
 use DB;
 use Illuminate\Support\Facades\View;
@@ -693,5 +695,76 @@ class EssentialsUtil extends Util
         $str = (string) $time;
 
         return strlen($str) === 5 ? $str.':00' : $str;
+    }
+
+    /**
+     * Resolves the business location for API clock-in (optional explicit branch id, else first branch).
+     */
+    protected function resolveClockInBusinessLocation(int $businessId, $locationId): ?BusinessLocation
+    {
+        $q = BusinessLocation::where('business_id', $businessId);
+        if ($locationId !== null && $locationId !== '') {
+            return $q->where('id', (int) $locationId)->first();
+        }
+
+        return $q->orderBy('id')->first();
+    }
+
+    /**
+     * API clock-in: if branch has a geofence, position must be inside, unless a non-empty note is provided.
+     *
+     * @return array{message: string, code: string, status: int}|null
+     */
+    public function validateApiClockInGeofence(int $businessId, User $user, $latitude, $longitude, $clockInNote, $locationId): ?array
+    {
+        $hasExplicitLocation = $locationId !== null && $locationId !== '';
+        $bl = $this->resolveClockInBusinessLocation($businessId, $locationId);
+        if ($hasExplicitLocation && $bl === null) {
+            return [
+                'message' => __('essentials::lang.business_location_not_found'),
+                'code' => 'BUSINESS_LOCATION_NOT_FOUND',
+                'status' => 404,
+            ];
+        }
+        if ($bl === null) {
+            return null;
+        }
+
+        $permitted = $user->permitted_locations($businessId);
+        if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
+            return [
+                'message' => __('essentials::lang.business_location_not_permitted'),
+                'code' => 'BUSINESS_LOCATION_NOT_PERMITTED',
+                'status' => 403,
+            ];
+        }
+
+        if (! $bl->hasActiveAttendanceGeofence()) {
+            return null;
+        }
+        if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
+            return [
+                'message' => __('essentials::lang.attendance_geofence_coordinates_required'),
+                'code' => 'GEOFENCE_COORDINATES_REQUIRED',
+                'status' => 400,
+            ];
+        }
+
+        $lat = (float) $latitude;
+        $lng = (float) $longitude;
+        $note = is_string($clockInNote) ? trim($clockInNote) : (string) $clockInNote;
+        if ($note === '') {
+            $note = '';
+        }
+
+        if (! $bl->isCoordinateInsideAttendanceGeofence($lat, $lng) && $note === '') {
+            return [
+                'message' => __('essentials::lang.outside_attendance_geofence'),
+                'code' => 'OUTSIDE_GEOFENCE',
+                'status' => 400,
+            ];
+        }
+
+        return null;
     }
 }

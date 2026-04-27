@@ -164,6 +164,8 @@ class AttendanceController extends ApiController
      * @bodyParam ip_address string IP address.
      * @bodyParam latitude string Latitude of the clock in location.
      * @bodyParam longitude string Longitude of the clock in location.
+     * @bodyParam location_id integer optional Branch id for geofence; defaults to first location.
+     * @bodyParam clockin_image file optional Image file (e.g. selfie / proof).
      *
      * @response {
          "success":true,
@@ -185,6 +187,23 @@ class AttendanceController extends ApiController
             $settings = ! empty($settings) ? json_decode($settings, true) : [];
             $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil;
 
+            $geo = $essentialsUtil->validateApiClockInGeofence(
+                $business_id,
+                $user,
+                $request->input('latitude'),
+                $request->input('longitude'),
+                $request->input('clock_in_note'),
+                $request->input('location_id')
+            );
+            if ($geo !== null) {
+                return response()->json([
+                    'error' => [
+                        'message' => $geo['message'],
+                        'code' => $geo['code'],
+                    ],
+                ], (int) ($geo['status'] ?? 400));
+            }
+
             $data = [
                 'business_id' => $business_id,
                 'user_id' => $request->input('user_id'),
@@ -192,6 +211,13 @@ class AttendanceController extends ApiController
                 'clock_in_note' => $request->input('clock_in_note'),
                 'ip_address' => $request->input('ip_address'),
             ];
+
+            if ($request->hasFile('clockin_image')) {
+                $path = $request->file('clockin_image')->store('clock_in_images', 'public');
+                if (! empty($path)) {
+                    $data['clock_in_image'] = $path;
+                }
+            }
 
             if (! empty($settings['is_location_required'])) {
                 $long = $request->input('longitude');
