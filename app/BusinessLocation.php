@@ -22,15 +22,20 @@ class BusinessLocation extends Model
     protected $casts = [
         'featured_products' => 'array',
         'attendance_geofence_enabled' => 'boolean',
+        'attendance_geofence_polygon' => 'array',
     ];
 
     /**
-     * Whether this location has a configured clock-in geofence (center + radius).
+     * Whether this location has a configured clock-in geofence (polygon or legacy circle).
      */
     public function hasActiveAttendanceGeofence(): bool
     {
         if (empty($this->attendance_geofence_enabled)) {
             return false;
+        }
+        $poly = $this->attendance_geofence_polygon;
+        if (is_array($poly) && count($poly) >= 3) {
+            return true;
         }
         if ($this->attendance_geofence_latitude === null || $this->attendance_geofence_longitude === null) {
             return false;
@@ -38,6 +43,33 @@ class BusinessLocation extends Model
         $r = (int) ($this->attendance_geofence_radius_meters ?? 0);
 
         return $r > 0;
+    }
+
+    /**
+     * Ray-casting: point [lat, lng] inside polygon [[lat,lng], ...] (WGS-84, small area).
+     */
+    public static function isPointInPolygon(float $lat, float $lng, array $polygon): bool
+    {
+        $n = count($polygon);
+        if ($n < 3) {
+            return false;
+        }
+        $inside = false;
+        for ($i = 0, $j = $n - 1; $i < $n; $j = $i++) {
+            $yi = (float) $polygon[$i][0];
+            $xi = (float) $polygon[$i][1];
+            $yj = (float) $polygon[$j][0];
+            $xj = (float) $polygon[$j][1];
+            $den = $yj - $yi;
+            if (abs($den) < 1e-12) {
+                $den = $den >= 0 ? 1e-12 : -1e-12;
+            }
+            if ((($yi > $lat) != ($yj > $lat)) && ($lng < ($xj - $xi) * ($lat - $yi) / $den + $xi)) {
+                $inside = ! $inside;
+            }
+        }
+
+        return $inside;
     }
 
     /**
@@ -56,12 +88,16 @@ class BusinessLocation extends Model
     }
 
     /**
-     * True if the given WGS-84 point lies inside the configured radius from the zone center.
+     * True if the point is inside the configured polygon, or (legacy) inside the circle.
      */
     public function isCoordinateInsideAttendanceGeofence(float $latitude, float $longitude): bool
     {
         if (! $this->hasActiveAttendanceGeofence()) {
             return false;
+        }
+        $poly = $this->attendance_geofence_polygon;
+        if (is_array($poly) && count($poly) >= 3) {
+            return self::isPointInPolygon($latitude, $longitude, $poly);
         }
 
         $d = self::distanceMetersBetweenCoordinates(

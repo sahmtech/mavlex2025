@@ -1296,7 +1296,7 @@ $(document).ready(function() {
         }
     });
 
-    // Business location: attendance geofence on map (Leaflet + OpenStreetMap — no API key)
+    // Business location: geofence polygon (Leaflet + Geoman + OpenStreetMap)
     function loadLeafletForLocationGeofence(onReady) {
         if (window.L && typeof L.map === 'function') {
             onReady();
@@ -1334,72 +1334,147 @@ $(document).ready(function() {
         document.head.appendChild(s);
     }
 
-    function renderGeofenceMapInContainer(container, $lat, $lng, $rad) {
-        var lat = parseFloat($lat.val());
-        var lng = parseFloat($lng.val());
-        var rad = parseInt($rad.val(), 10);
+    function loadLeafletGeoman(onReady) {
+        loadLeafletForLocationGeofence(function() {
+            if (typeof L === 'undefined') {
+                onReady();
+                return;
+            }
+            if (typeof L.PM !== 'undefined') {
+                onReady();
+                return;
+            }
+            if (window._geomanBlQueueLoading) {
+                window._geomanBlQueue = window._geomanBlQueue || [];
+                window._geomanBlQueue.push(onReady);
+                return;
+            }
+            window._geomanBlQueueLoading = true;
+            window._geomanBlQueue = [onReady];
+            if (!document.querySelector('link[href*="leaflet-geoman"]')) {
+                var l = document.createElement('link');
+                l.rel = 'stylesheet';
+                l.href = 'https://unpkg.com/@geoman-io/leaflet-geoman-free@2.18.0/dist/leaflet-geoman.css';
+                document.head.appendChild(l);
+            }
+            var g = document.createElement('script');
+            g.src = 'https://unpkg.com/@geoman-io/leaflet-geoman-free@2.18.0/dist/leaflet-geoman.min.js';
+            g.async = true;
+            g.onload = function() {
+                window._geomanBlQueueLoading = false;
+                var q2 = window._geomanBlQueue || [];
+                window._geomanBlQueue = null;
+                for (var j = 0; j < q2.length; j++) {
+                    q2[j]();
+                }
+            };
+            g.onerror = function() {
+                window._geomanBlQueueLoading = false;
+                window._geomanBlQueue = null;
+            };
+            document.head.appendChild(g);
+        });
+    }
+
+    function getPolygonRingFromLayer(layer) {
+        var raw = layer.getLatLngs();
+        if (!raw || !raw.length) {
+            return [];
+        }
+        var ring = raw[0] && raw[0].lat !== undefined ? raw : raw[0];
+        if (ring && ring[0] && ring[0].lat === undefined && Array.isArray(ring[0])) {
+            ring = ring[0];
+        }
+        if (!ring || !ring.length) {
+            return [];
+        }
+        return ring.map(function(p) {
+            return [p.lat, p.lng];
+        });
+    }
+
+    function syncGeofencePolygonToHidden(layer, $hidden) {
+        var arr = getPolygonRingFromLayer(layer);
+        if (arr.length) {
+            $hidden.val(JSON.stringify(arr));
+        }
+    }
+
+    function renderGeofencePolygonMap(container, $hidden) {
         var defLat = 24.7136;
         var defLng = 46.6753;
-        if (isNaN(lat) || isNaN(lng)) {
-            lat = defLat;
-            lng = defLng;
-            $lat.val(String(lat));
-            $lng.val(String(lng));
-        }
-        if (isNaN(rad) || rad < 1) {
-            rad = 200;
-            $rad.val(String(rad));
-        }
-        var map = L.map(container, { scrollWheelZoom: true }).setView([lat, lng], 15);
+        var map = L.map(container, { scrollWheelZoom: true }).setView([defLat, defLng], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+            attribution: '&copy; OpenStreetMap',
         }).addTo(map);
 
-        var circle = L.circle([lat, lng], {
-            radius: rad,
-            color: '#2563eb',
-            weight: 2,
-            fillColor: '#2563eb',
-            fillOpacity: 0.12,
-        }).addTo(map);
-
-        var marker = L.marker([lat, lng], { draggable: true }).addTo(map);
-
-        function syncFromMarker() {
-            var p = marker.getLatLng();
-            $lat.val(p.lat.toFixed(7));
-            $lng.val(p.lng.toFixed(7));
-            circle.setLatLng(p);
+        map.pm.addControls({
+            position: 'topleft',
+            drawPolygon: true,
+            drawMarker: false,
+            drawPolyline: false,
+            drawRectangle: false,
+            drawCircle: false,
+            drawCircleMarker: false,
+            drawText: false,
+            cutPolygon: false,
+            oneBlock: false,
+        });
+        var currentLayer = null;
+        function bindLayer(layer) {
+            layer.on('pm:update', function() {
+                syncGeofencePolygonToHidden(layer, $hidden);
+            });
+            layer.on('pm:remove', function() {
+                if (currentLayer === layer) {
+                    currentLayer = null;
+                }
+                $hidden.val('');
+            });
+            layer.on('pm:dragend', function() {
+                syncGeofencePolygonToHidden(layer, $hidden);
+            });
         }
 
-        marker.on('dragend', syncFromMarker);
-        map.on('click', function(e) {
-            marker.setLatLng(e.latlng);
-            syncFromMarker();
-        });
-
-        $rad.off('input.geofenceMap').on('input.geofenceMap', function() {
-            var r = parseInt($(this).val(), 10);
-            if (!isNaN(r) && r >= 1) {
-                circle.setRadius(r);
+        map.on('pm:create', function(e) {
+            if (e.shape === 'Polygon') {
+                if (currentLayer) {
+                    map.removeLayer(currentLayer);
+                }
+                currentLayer = e.layer;
+                bindLayer(currentLayer);
+                syncGeofencePolygonToHidden(currentLayer, $hidden);
             }
         });
-        $lat.add($lng)
-            .off('change.geofenceMap input.geofenceMap')
-            .on('change.geofenceMap input.geofenceMap', function() {
-                var la = parseFloat($lat.val());
-                var ln = parseFloat($lng.val());
-                if (!isNaN(la) && !isNaN(ln) && la >= -90 && la <= 90 && ln >= -180 && ln <= 180) {
-                    var p = L.latLng(la, ln);
-                    marker.setLatLng(p);
-                    circle.setLatLng(p);
-                    map.panTo(p);
+
+        var initial = ($hidden.val() || '').trim();
+        if (initial) {
+            try {
+                var pts = JSON.parse(initial);
+                if (pts && pts.length >= 3) {
+                    var llp = pts.map(function(p) {
+                        return L.latLng(p[0], p[1]);
+                    });
+                    var pl = L.polygon(llp, { color: '#2563eb', weight: 2, fillColor: '#2563eb', fillOpacity: 0.15 });
+                    pl.addTo(map);
+                    if (pl.pm) {
+                        pl.pm.enable();
+                    }
+                    currentLayer = pl;
+                    bindLayer(pl);
+                    syncGeofencePolygonToHidden(pl, $hidden);
+                    map.fitBounds(pl.getBounds().pad(0.1));
                 }
-            });
+            } catch (x) { /* ignore */ }
+        }
+        if (!currentLayer) {
+            $hidden.val('');
+        }
+
         setTimeout(function() {
             map.invalidateSize();
-        }, 400);
+        }, 450);
     }
 
     function initBusinessLocationGeofenceMap($modal) {
@@ -1411,20 +1486,18 @@ $(document).ready(function() {
         if (!$form.length) {
             return;
         }
-        var $lat = $form.find('input[name="attendance_geofence_latitude"]');
-        var $lng = $form.find('input[name="attendance_geofence_longitude"]');
-        var $rad = $form.find('input[name="attendance_geofence_radius_meters"]');
-        if (!$lat.length || !$lng.length || !$rad.length) {
+        var $hidden = $form.find('input.attendance-geofence-polygon-field, input#attendance_geofence_polygon');
+        if (!$hidden.length) {
             return;
         }
         $el.empty().css('background', '#e8e8e8');
-        loadLeafletForLocationGeofence(function() {
-            if (typeof L === 'undefined') {
+        loadLeafletGeoman(function() {
+            if (typeof L === 'undefined' || !L.PM) {
                 $el.html(
                     '<p class="text-muted" style="padding:1rem;">' +
                         (typeof LANG !== 'undefined' && LANG.map_load_error
                             ? LANG.map_load_error
-                            : 'Could not load map tiles.') +
+                            : 'Could not load map tools.') +
                         '</p>'
                 );
                 return;
@@ -1433,8 +1506,8 @@ $(document).ready(function() {
                 if (!$el.is(':visible')) {
                     return;
                 }
-                renderGeofenceMapInContainer($el[0], $lat, $lng, $rad);
-            }, 250);
+                renderGeofencePolygonMap($el[0], $hidden);
+            }, 200);
         });
     }
 

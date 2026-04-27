@@ -401,6 +401,7 @@ class BusinessLocationController extends Controller
             return [
                 'data' => [
                     'attendance_geofence_enabled' => 0,
+                    'attendance_geofence_polygon' => null,
                     'attendance_geofence_latitude' => null,
                     'attendance_geofence_longitude' => null,
                     'attendance_geofence_radius_meters' => null,
@@ -408,30 +409,32 @@ class BusinessLocationController extends Controller
             ];
         }
 
-        $validator = Validator::make(
-            $request->all(),
-            [
-                'attendance_geofence_latitude' => 'required|numeric|between:-90,90',
-                'attendance_geofence_longitude' => 'required|numeric|between:-180,180',
-                'attendance_geofence_radius_meters' => 'required|integer|min:1|max:1000000',
-            ],
-            [
-                'attendance_geofence_latitude.required' => __('business.attendance_geofence_lat_required'),
-                'attendance_geofence_longitude.required' => __('business.attendance_geofence_lng_required'),
-                'attendance_geofence_radius_meters.required' => __('business.attendance_geofence_radius_required'),
-            ]
-        );
-
-        if ($validator->fails()) {
-            return ['error' => $validator->errors()->first()];
+        $raw = $request->input('attendance_geofence_polygon', '');
+        $polygon = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (! is_array($polygon) || count($polygon) < 3) {
+            return ['error' => __('business.attendance_geofence_polygon_min_points')];
+        }
+        $clean = [];
+        foreach ($polygon as $i => $pt) {
+            if (! is_array($pt) || count($pt) < 2) {
+                return ['error' => __('business.attendance_geofence_polygon_invalid')];
+            }
+            if (! is_numeric($pt[0]) || $pt[0] < -90 || $pt[0] > 90) {
+                return ['error' => __('business.attendance_geofence_polygon_invalid')];
+            }
+            if (! is_numeric($pt[1]) || $pt[1] < -180 || $pt[1] > 180) {
+                return ['error' => __('business.attendance_geofence_polygon_invalid')];
+            }
+            $clean[] = [(float) $pt[0], (float) $pt[1]];
         }
 
         return [
             'data' => [
                 'attendance_geofence_enabled' => 1,
-                'attendance_geofence_latitude' => $request->input('attendance_geofence_latitude'),
-                'attendance_geofence_longitude' => $request->input('attendance_geofence_longitude'),
-                'attendance_geofence_radius_meters' => (int) $request->input('attendance_geofence_radius_meters'),
+                'attendance_geofence_polygon' => $clean,
+                'attendance_geofence_latitude' => null,
+                'attendance_geofence_longitude' => null,
+                'attendance_geofence_radius_meters' => null,
             ],
         ];
     }

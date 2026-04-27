@@ -172,28 +172,15 @@
                     <div class="form-group">
                         <label>@lang('business.attendance_geofence_map')</label>
                         <div class="attendance-geofence-map"
-                            style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 4px; background: #e8e8e8;"></div>
+                            style="height: 380px; width: 100%; border: 1px solid #ddd; border-radius: 4px; background: #e8e8e8; z-index: 0;"></div>
                         <p class="help-block small">@lang('business.attendance_geofence_map_help')</p>
                     </div>
                 </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('attendance_geofence_latitude', __('business.attendance_geofence_latitude')) !!}
-                        {!! Form::number('attendance_geofence_latitude', old('attendance_geofence_latitude', $location->attendance_geofence_latitude ?? ''), ['class' => 'form-control', 'step' => 'any']); !!}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('attendance_geofence_longitude', __('business.attendance_geofence_longitude')) !!}
-                        {!! Form::number('attendance_geofence_longitude', old('attendance_geofence_longitude', $location->attendance_geofence_longitude ?? ''), ['class' => 'form-control', 'step' => 'any']); !!}
-                    </div>
-                </div>
-                <div class="col-sm-4">
-                    <div class="form-group">
-                        {!! Form::label('attendance_geofence_radius_meters', __('business.attendance_geofence_radius_meters')) !!}
-                        {!! Form::number('attendance_geofence_radius_meters', old('attendance_geofence_radius_meters', $location->attendance_geofence_radius_meters ?? ''), ['class' => 'form-control', 'min' => 1]); !!}
-                    </div>
-                </div>
+                @php
+                    $polyEdit = old('attendance_geofence_polygon', $location->attendance_geofence_polygon ?? null);
+                    $polyStrEdit = is_array($polyEdit) ? json_encode($polyEdit) : (is_string($polyEdit) ? $polyEdit : '');
+                @endphp
+                {!! Form::hidden('attendance_geofence_polygon', $polyStrEdit, ['id' => 'attendance_geofence_polygon', 'class' => 'attendance-geofence-polygon-field']) !!}
                 <div class="clearfix"></div>
                 <hr>
                 <div class="col-sm-12">
