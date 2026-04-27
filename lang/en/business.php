@@ -93,6 +93,8 @@ return [
     'attendance_geofence_lat_required' => 'Latitude is required when geofence is enabled.',
     'attendance_geofence_lng_required' => 'Longitude is required when geofence is enabled.',
     'attendance_geofence_radius_required' => 'Radius in meters is required when geofence is enabled.',
+    'attendance_geofence_map' => 'Zone on map',
+    'attendance_geofence_map_help' => 'Click the map to place the center, or drag the marker. The circle shows the allowed radius; you can also edit the numbers below.',
     'location' => 'Location',
     'already_registered' => 'Already registered?',
     'sign_in' => 'Sign In',

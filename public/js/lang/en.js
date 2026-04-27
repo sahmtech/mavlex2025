@@ -157,4 +157,5 @@ LANG = {
     'invoice_number_already_exists' :'Invoice number already exists',
     'tax_number_already_exists' : 'This tax number already exists',
     'missing_skus' : 'Missing SKUs',
+    'geofence_map_no_key' : 'Add GOOGLE_MAP_API_KEY in .env to show the map for the attendance zone.',
 };

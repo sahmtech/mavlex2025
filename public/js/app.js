@@ -1296,6 +1296,151 @@ $(document).ready(function() {
         }
     });
 
+    // Business location: draw attendance geofence on Google Maps (modal forms)
+    function loadGoogleMapsForLocationGeofence(apiKey, onReady) {
+        if (window.google && window.google.maps) {
+            onReady();
+            return;
+        }
+        if (!apiKey) {
+            return;
+        }
+        if (window._gmapBlQueueLoading) {
+            window._gmapBlQueue = window._gmapBlQueue || [];
+            window._gmapBlQueue.push(onReady);
+            return;
+        }
+        window._gmapBlQueueLoading = true;
+        window._gmapBlQueue = [onReady];
+        var s = document.createElement('script');
+        s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey);
+        s.async = true;
+        s.defer = true;
+        s.onload = function() {
+            window._gmapBlQueueLoading = false;
+            var q = window._gmapBlQueue || [];
+            window._gmapBlQueue = null;
+            for (var i = 0; i < q.length; i++) {
+                q[i]();
+            }
+        };
+        document.head.appendChild(s);
+    }
+
+    function renderGeofenceMapInContainer(container, $lat, $lng, $rad) {
+        var lat = parseFloat($lat.val());
+        var lng = parseFloat($lng.val());
+        var rad = parseInt($rad.val(), 10);
+        var defLat = 24.7136;
+        var defLng = 46.6753;
+        if (isNaN(lat) || isNaN(lng)) {
+            lat = defLat;
+            lng = defLng;
+            $lat.val(String(lat));
+            $lng.val(String(lng));
+        }
+        if (isNaN(rad) || rad < 1) {
+            rad = 200;
+            $rad.val(String(rad));
+        }
+        var center = { lat: lat, lng: lng };
+        var map = new google.maps.Map(container, {
+            zoom: 15,
+            center: center,
+            mapTypeControl: true,
+            streetViewControl: false,
+        });
+        var marker = new google.maps.Marker({
+            position: center,
+            map: map,
+            draggable: true,
+        });
+        var circle = new google.maps.Circle({
+            strokeColor: '#2563eb',
+            strokeOpacity: 0.95,
+            strokeWeight: 2,
+            fillColor: '#2563eb',
+            fillOpacity: 0.12,
+            map: map,
+            center: center,
+            radius: rad,
+        });
+        function syncFromMarker() {
+            var p = marker.getPosition();
+            $lat.val(p.lat().toFixed(7));
+            $lng.val(p.lng().toFixed(7));
+            circle.setCenter(p);
+        }
+        marker.addListener('dragend', syncFromMarker);
+        map.addListener('click', function(e) {
+            marker.setPosition(e.latLng);
+            syncFromMarker();
+        });
+        $rad.off('input.geofenceMap').on('input.geofenceMap', function() {
+            var r = parseInt($(this).val(), 10);
+            if (!isNaN(r) && r >= 1) {
+                circle.setRadius(r);
+            }
+        });
+        $lat.add($lng)
+            .off('change.geofenceMap input.geofenceMap')
+            .on('change.geofenceMap input.geofenceMap', function() {
+                var la = parseFloat($lat.val());
+                var ln = parseFloat($lng.val());
+                if (!isNaN(la) && !isNaN(ln) && la >= -90 && la <= 90 && ln >= -180 && ln <= 180) {
+                    var pos = new google.maps.LatLng(la, ln);
+                    marker.setPosition(pos);
+                    circle.setCenter(pos);
+                    map.panTo(pos);
+                }
+            });
+        setTimeout(function() {
+            google.maps.event.trigger(map, 'resize');
+            if (marker.getPosition()) {
+                map.setCenter(marker.getPosition());
+            }
+        }, 400);
+    }
+
+    function initBusinessLocationGeofenceMap($modal) {
+        var $el = $modal.find('.attendance-geofence-map');
+        if (!$el.length) {
+            return;
+        }
+        var $form = $modal.find('form#business_location_add_form');
+        if (!$form.length) {
+            return;
+        }
+        var $lat = $form.find('input[name="attendance_geofence_latitude"]');
+        var $lng = $form.find('input[name="attendance_geofence_longitude"]');
+        var $rad = $form.find('input[name="attendance_geofence_radius_meters"]');
+        if (!$lat.length || !$lng.length || !$rad.length) {
+            return;
+        }
+        var key = $el.data('google-maps-key') || '';
+        if (!key) {
+            $el
+                .empty()
+                .html(
+                    '<p class="text-muted" style="padding:1rem;">' +
+                        (typeof LANG !== 'undefined' && LANG.geofence_map_no_key
+                            ? LANG.geofence_map_no_key
+                            : 'Add GOOGLE_MAP_API_KEY in .env to show the map.') +
+                        '</p>'
+                );
+            return;
+        }
+        $el.empty().css('background', '#e8e8e8');
+        loadGoogleMapsForLocationGeofence(key, function() {
+            setTimeout(function() {
+                if (!$el.is(':visible')) {
+                    return;
+                }
+                renderGeofenceMapInContainer($el[0], $lat, $lng, $rad);
+            }, 250);
+        });
+    }
+
     //Business locations CRUD
     business_locations = $('#business_location_table').DataTable({
         processing: true,
@@ -1397,7 +1542,8 @@ $(document).ready(function() {
                     };
                 },
             },
-        })
+        });
+        initBusinessLocationGeofenceMap($(e.target));
     });
 
     if ($('#header_text').length) {

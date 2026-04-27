@@ -135,4 +135,5 @@ LANG = {
     'invoice_number_already_exists': 'رقم الفاتورة موجود بالفعل',
     'tax_number_already_exists' : 'رقم الضريبة هذا موجود بالفعل',
     'missing_skus' : 'أكواد SKU مفقودة',
+    'geofence_map_no_key' : 'أضف GOOGLE_MAP_API_KEY في ملف .env لعرض خريطة نطاق الحضور.',
 };

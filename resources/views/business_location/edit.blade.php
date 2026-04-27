@@ -168,6 +168,14 @@
                         <label for="attendance_geofence_enabled_edit" class="tw-mb-0">@lang('business.attendance_geofence_enable')</label>
                     </div>
                 </div>
+                <div class="col-sm-12">
+                    <div class="form-group">
+                        <label>@lang('business.attendance_geofence_map')</label>
+                        <div class="attendance-geofence-map" data-google-maps-key="{{ env('GOOGLE_MAP_API_KEY') }}"
+                            style="height: 300px; width: 100%; border: 1px solid #ddd; border-radius: 4px; background: #e8e8e8;"></div>
+                        <p class="help-block small">@lang('business.attendance_geofence_map_help')</p>
+                    </div>
+                </div>
                 <div class="col-sm-4">
                     <div class="form-group">
                         {!! Form::label('attendance_geofence_latitude', __('business.attendance_geofence_latitude')) !!}
