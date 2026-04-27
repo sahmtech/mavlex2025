@@ -387,4 +387,311 @@ class EssentialsUtil extends Util
 
             return $holidays;
     }
+
+    /**
+     * Full month attendance calendar for API/mobile: matches connector getAttendanceByDate payload shape.
+     * Weekend: Friday & Saturday (GCC). Calendar day status: 4 = workday, 6 = weekend.
+     *
+     * @param  int  $business_id
+     * @param  int  $user_id
+     * @param  int  $year
+     * @param  int  $month  1–12
+     * @param  array<string, mixed>  $essentials_settings
+     * @param  array<int>|string  $permitted_locations  Business location ids or 'all'
+     * @return array<string, mixed>
+     */
+    public function getAttendanceCalendarByMonth(
+        $business_id,
+        $user_id,
+        $year,
+        $month,
+        $essentials_settings = [],
+        $permitted_locations = 'all'
+    ) {
+        $year = (int) $year;
+        $month = (int) $month;
+        $monthStart = \Carbon\Carbon::createFromDate($year, $month, 1)->startOfDay();
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $extendedStart = $monthStart->copy()->subDays(7);
+        $extendedEnd = $monthEnd->copy()->addDays(7);
+
+        $attendanceRows = EssentialsAttendance::where('business_id', $business_id)
+            ->where('user_id', $user_id)
+            ->whereDate('clock_in_time', '>=', $extendedStart->toDateString())
+            ->whereDate('clock_in_time', '<=', $extendedEnd->toDateString())
+            ->orderBy('clock_in_time')
+            ->get();
+
+        $byDate = [];
+        foreach ($attendanceRows as $row) {
+            $key = \Carbon\Carbon::parse($row->clock_in_time)->format('Y-m-d');
+            if (! isset($byDate[$key])) {
+                $byDate[$key] = [];
+            }
+            $byDate[$key][] = $row;
+        }
+
+        $leaves = EssentialsLeave::where('business_id', $business_id)
+            ->where('user_id', $user_id)
+            ->where('status', 'approved')
+            ->whereDate('start_date', '<=', $extendedEnd->toDateString())
+            ->whereDate('end_date', '>=', $extendedStart->toDateString())
+            ->get();
+
+        $holidayQuery = EssentialsHoliday::where('business_id', $business_id)
+            ->whereDate('start_date', '<=', $extendedEnd->toDateString())
+            ->whereDate('end_date', '>=', $extendedStart->toDateString());
+
+        if ($permitted_locations !== 'all' && is_array($permitted_locations) && count($permitted_locations) > 0) {
+            $holidayQuery->where(function ($q) use ($permitted_locations) {
+                $q->whereIn('location_id', $permitted_locations)
+                    ->orWhereNull('location_id');
+            });
+        }
+
+        $holidays = $holidayQuery->get();
+
+        $graceAfterCheckin = (int) ($essentials_settings['grace_after_checkin'] ?? 0);
+        $graceAfterCheckout = (int) ($essentials_settings['grace_after_checkout'] ?? 0);
+
+        $attended = $late = $absent = $vacation = $weekend = $no_clockout = $out = 0;
+        $totalLateMinutes = $totalOvertimeMinutes = 0;
+
+        $buildDayStrip = function (\Carbon\Carbon $date) use (
+            &$byDate,
+            $business_id,
+            $user_id,
+            $graceAfterCheckin,
+            $graceAfterCheckout,
+        ) {
+            $dateStr = $date->format('Y-m-d');
+            $isWeekend = $date->isFriday() || $date->isSaturday();
+            $calendarStatus = $isWeekend ? 6 : 4;
+
+            $rows = $byDate[$dateStr] ?? [];
+            $clockInNote = '';
+            $startTime = null;
+            $endTime = null;
+            $lateMinutes = 0;
+            $overtimeMinutes = 0;
+
+            if (! empty($rows)) {
+                usort($rows, function ($a, $b) {
+                    return strcmp($a->clock_in_time, $b->clock_in_time);
+                });
+                $first = $rows[0];
+                $lastWithOut = collect($rows)->filter(function ($r) {
+                    return ! empty($r->clock_out_time);
+                })->sortByDesc('clock_out_time')->first();
+
+                $clockInNote = (string) ($first->clock_in_note ?? '');
+                $startTime = $first->clock_in_time;
+                $endTime = $lastWithOut ? $lastWithOut->clock_out_time : null;
+
+                $shift = $this->getUserShiftForDate($business_id, $user_id, $date);
+                if (! empty($shift) && ! empty($shift->start_time) && ($shift->type ?? '') !== 'flexible_shift') {
+                    try {
+                        $scheduledStart = \Carbon\Carbon::parse($dateStr.' '.$this->normalizeTimeString($shift->start_time));
+                        $deadline = $scheduledStart->copy()->addMinutes($graceAfterCheckin);
+                        $clockIn = \Carbon\Carbon::parse($first->clock_in_time);
+                        if ($clockIn->gt($deadline)) {
+                            $lateMinutes = $clockIn->diffInMinutes($deadline);
+                        }
+                    } catch (\Exception $e) {
+                        $lateMinutes = 0;
+                    }
+                }
+
+                if (! empty($shift) && ! empty($shift->end_time) && ($shift->type ?? '') !== 'flexible_shift' && $lastWithOut) {
+                    try {
+                        $scheduledEnd = \Carbon\Carbon::parse($dateStr.' '.$this->normalizeTimeString($shift->end_time));
+                        $overtimeThreshold = $scheduledEnd->copy()->addMinutes($graceAfterCheckout);
+                        $clockOut = \Carbon\Carbon::parse($lastWithOut->clock_out_time);
+                        if ($clockOut->gt($overtimeThreshold)) {
+                            $overtimeMinutes = $clockOut->diffInMinutes($overtimeThreshold);
+                        }
+                    } catch (\Exception $e) {
+                        $overtimeMinutes = 0;
+                    }
+                }
+            }
+
+            return [
+                'number_in_month' => (int) $date->format('j'),
+                'number_in_week' => (int) $date->format('w') + 1,
+                'month' => (int) $date->format('n'),
+                'year' => (int) $date->format('Y'),
+                'name' => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][(int) $date->format('w')],
+                'status' => $calendarStatus,
+                'clock_in_note' => $clockInNote,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'late_minutes' => $lateMinutes,
+                'overtime_minutes' => $overtimeMinutes,
+            ];
+        };
+
+        $daysBefore = [];
+        for ($d = $monthStart->copy()->subDays(7); $d->lt($monthStart); $d->addDay()) {
+            $daysBefore[] = $buildDayStrip($d->copy());
+        }
+
+        $days = [];
+        for ($d = $monthStart->copy(); $d->lte($monthEnd); $d->addDay()) {
+            $dayData = $buildDayStrip($d->copy());
+            $days[] = $dayData;
+
+            $dateStr = $d->format('Y-m-d');
+            $isWeekend = $d->isFriday() || $d->isSaturday();
+
+            if ($isWeekend) {
+                $weekend++;
+            }
+
+            $onApprovedLeave = $leaves->contains(function ($leave) use ($dateStr) {
+                return $dateStr >= $leave->start_date && $dateStr <= $leave->end_date;
+            });
+
+            $onHoliday = $holidays->contains(function ($h) use ($d) {
+                $start = \Carbon\Carbon::parse($h->start_date)->startOfDay();
+                $end = \Carbon\Carbon::parse($h->end_date)->endOfDay();
+
+                return $d->between($start, $end);
+            });
+
+            $rows = $byDate[$dateStr] ?? [];
+
+            if ($isWeekend || $onHoliday) {
+                continue;
+            }
+
+            if ($onApprovedLeave) {
+                $vacation++;
+
+                continue;
+            }
+
+            if (empty($rows)) {
+                $absent++;
+
+                continue;
+            }
+
+            if ($this->attendanceRowsMissingClockOut($rows)) {
+                $no_clockout++;
+            }
+
+            $shift = $this->getUserShiftForDate($business_id, $user_id, $d->copy());
+            $firstRow = collect($rows)->sortBy('clock_in_time')->first();
+            $isLate = false;
+            if (! empty($shift) && ! empty($shift->start_time) && ($shift->type ?? '') !== 'flexible_shift') {
+                try {
+                    $deadline = \Carbon\Carbon::parse($dateStr.' '.$this->normalizeTimeString($shift->start_time))
+                        ->addMinutes($graceAfterCheckin);
+                    if (\Carbon\Carbon::parse($firstRow->clock_in_time)->gt($deadline)) {
+                        $isLate = true;
+                    }
+                } catch (\Exception $e) {
+                    $isLate = false;
+                }
+            }
+
+            if ($isLate) {
+                $late++;
+                try {
+                    $deadline = \Carbon\Carbon::parse($dateStr.' '.$this->normalizeTimeString($shift->start_time))
+                        ->addMinutes($graceAfterCheckin);
+                    $totalLateMinutes += $deadline->diffInMinutes(\Carbon\Carbon::parse($firstRow->clock_in_time));
+                } catch (\Exception $e) {
+                }
+            } else {
+                $attended++;
+            }
+
+            $lastOut = collect($rows)->filter(function ($r) {
+                return ! empty($r->clock_out_time);
+            })->sortByDesc('clock_out_time')->first();
+
+            if ($lastOut && ! empty($shift) && ! empty($shift->end_time) && ($shift->type ?? '') !== 'flexible_shift') {
+                try {
+                    $threshold = \Carbon\Carbon::parse($dateStr.' '.$this->normalizeTimeString($shift->end_time))
+                        ->addMinutes($graceAfterCheckout);
+                    $clockOut = \Carbon\Carbon::parse($lastOut->clock_out_time);
+                    if ($clockOut->gt($threshold)) {
+                        $totalOvertimeMinutes += $clockOut->diffInMinutes($threshold);
+                    }
+                } catch (\Exception $e) {
+                }
+            }
+        }
+
+        $daysAfter = [];
+        for ($d = $monthEnd->copy()->addDay(); $d->lte($monthEnd->copy()->addDays(7)); $d->addDay()) {
+            $daysAfter[] = $buildDayStrip($d->copy());
+        }
+
+        return [
+            'attended' => $attended,
+            'late' => $late,
+            'absent' => $absent,
+            'out' => $out,
+            'vacation' => $vacation,
+            'weekend' => $weekend,
+            'no_clockout' => $no_clockout,
+            'total_late_minutes' => $totalLateMinutes,
+            'total_overtime_minutes' => $totalOvertimeMinutes,
+            'month_name' => [
+                1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+                5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+                9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December',
+            ][$monthNum] ?? $monthStart->format('F'),
+            'days_before' => $daysBefore,
+            'days' => $days,
+            'days_after' => $daysAfter,
+        ];
+    }
+
+    /**
+     * @param  array<int, EssentialsAttendance>  $rows
+     */
+    protected function attendanceRowsMissingClockOut(array $rows): bool
+    {
+        foreach ($rows as $r) {
+            if (empty($r->clock_out_time)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return Shift|null
+     */
+    protected function getUserShiftForDate($business_id, $user_id, \Carbon\Carbon $date)
+    {
+        $dateStr = $date->format('Y-m-d');
+
+        return Shift::join('essentials_user_shifts as us', 'us.essentials_shift_id', '=', 'essentials_shifts.id')
+            ->where('us.user_id', $user_id)
+            ->where('essentials_shifts.business_id', $business_id)
+            ->whereDate('us.start_date', '<=', $dateStr)
+            ->where(function ($q) use ($dateStr) {
+                $q->whereNull('us.end_date')
+                    ->orWhereDate('us.end_date', '>=', $dateStr);
+            })
+            ->select('essentials_shifts.*')
+            ->first();
+    }
+
+    protected function normalizeTimeString($time): string
+    {
+        if ($time instanceof \DateTimeInterface) {
+            return $time->format('H:i:s');
+        }
+        $str = (string) $time;
+
+        return strlen($str) === 5 ? $str.':00' : $str;
+    }
 }

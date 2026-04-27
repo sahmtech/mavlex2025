@@ -3,6 +3,7 @@
 namespace Modules\Connector\Http\Controllers\Api;
 
 use App\Business;
+use App\User;
 use App\Utils\ModuleUtil;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -67,6 +68,89 @@ class AttendanceController extends ApiController
                                     ->first();
 
         return new CommonResource($attendance);
+    }
+
+    /**
+     * Monthly attendance calendar (presence / absence summary + daily strips).
+     *
+     * @queryParam year integer required Example: 2025
+     * @queryParam month integer required 1–12 Example: 10
+     * @queryParam user_id integer Optional; defaults to authenticated user. Requires `essentials.crud_all_attendance` for others.
+     *
+     * @response scenario="success" {
+     *   "data": {
+     *     "attended": 0,
+     *     "late": 0,
+     *     "absent": 22,
+     *     "out": 0,
+     *     "vacation": 0,
+     *     "weekend": 9,
+     *     "no_clockout": 0,
+     *     "total_late_minutes": 0,
+     *     "total_overtime_minutes": 0,
+     *     "month_name": "October",
+     *     "days_before": [],
+     *     "days": [],
+     *     "days_after": []
+     *   }
+     * }
+     */
+    public function getAttendanceByDate(Request $request)
+    {
+        if (! $this->moduleUtil->isModuleInstalled('Essentials')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $year = $request->query('year');
+        $month = $request->query('month');
+
+        if ($year === null || $year === '' || $month === null || $month === '') {
+            return $this->setStatusCode(422)->respondWithError('Year and month are required.');
+        }
+
+        $monthNum = (int) $month;
+        if ($monthNum < 1 || $monthNum > 12) {
+            return $this->setStatusCode(422)->respondWithError('Month must be between 1 and 12.');
+        }
+
+        $authUser = Auth::user();
+        $business_id = $authUser->business_id;
+
+        $can_view_own = $authUser->can('essentials.view_own_attendance');
+        $can_view_all = $authUser->can('essentials.crud_all_attendance');
+        $can_api_own_attendance = $authUser->can('essentials.allow_users_for_attendance_from_api');
+        $is_admin = $this->moduleUtil->is_admin($authUser, $business_id);
+
+        if (! ($authUser->can('superadmin') || $can_view_own || $can_view_all || $is_admin || $can_api_own_attendance)) {
+            return $this->respondUnauthorized();
+        }
+
+        $target_user_id = (int) ($request->query('user_id') ?: $authUser->id);
+
+        if ($target_user_id !== (int) $authUser->id && ! ($can_view_all || $authUser->can('superadmin'))) {
+            return $this->respondUnauthorized();
+        }
+
+        if (! User::where('business_id', $business_id)->where('id', $target_user_id)->exists()) {
+            return $this->setStatusCode(404)->respondWithError('User not found for this business.');
+        }
+
+        $business = Business::findOrFail($business_id);
+        $settings = ! empty($business->essentials_settings) ? json_decode($business->essentials_settings, true) : [];
+
+        $permitted_locations = $authUser->permitted_locations($business_id);
+
+        $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil;
+        $data = $essentialsUtil->getAttendanceCalendarByMonth(
+            $business_id,
+            $target_user_id,
+            (int) $year,
+            $monthNum,
+            $settings,
+            $permitted_locations
+        );
+
+        return new CommonResource($data);
     }
 
     /**
