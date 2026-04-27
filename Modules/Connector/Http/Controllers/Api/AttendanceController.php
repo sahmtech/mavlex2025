@@ -206,7 +206,8 @@ class AttendanceController extends ApiController
 
             $data = [
                 'business_id' => $business_id,
-                'user_id' => $request->input('user_id'),
+                // Match web attendance: clock-in for authenticated user unless explicitly overridden.
+                'user_id' => $request->filled('user_id') ? (int) $request->input('user_id') : $user->id,
                 'clock_in_time' => empty($request->input('clock_in_time')) ? \Carbon::now() : $request->input('clock_in_time'),
                 'clock_in_note' => $request->input('clock_in_note'),
                 'ip_address' => $request->input('ip_address'),

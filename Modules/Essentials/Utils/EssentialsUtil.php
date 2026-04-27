@@ -97,7 +97,7 @@ class EssentialsUtil extends Util
     /**
      * Validates user clock in and returns available shift id
      */
-    public function checkUserShift($user_id, $settings, $clock_in_time = null)
+    public function checkUserShift($user_id, $settings, $clock_in_time = null, $business_id = null)
     {
         $shift_id = null;
         $clock_in_datetime = ! empty($clock_in_time) ? \Carbon::parse($clock_in_time) : \Carbon::now();
@@ -112,18 +112,24 @@ class EssentialsUtil extends Util
         //$clock_in_end = ! empty($clock_in_time) ? \Carbon::parse($clock_in_time)->addMinutes($grace_after_checkin) : \Carbon::now()->addMinutes($grace_after_checkin);
 
         $user_shifts = EssentialsUserShift::join('essentials_shifts as s', 's.id', '=', 'essentials_user_shifts.essentials_shift_id')
-                    ->where('user_id', $user_id)
-                    ->where('start_date', '<=', $clock_in_date)
+                    ->where('essentials_user_shifts.user_id', $user_id)
+                    ->when(! empty($business_id), function ($q) use ($business_id) {
+                        $q->where('s.business_id', $business_id);
+                    })
                     ->where(function ($q) use ($clock_in_date) {
-                        $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $clock_in_date);
+                        $q->whereNull('essentials_user_shifts.start_date')
+                            ->orWhere('essentials_user_shifts.start_date', '<=', $clock_in_date);
+                    })
+                    ->where(function ($q) use ($clock_in_date) {
+                        $q->whereNull('essentials_user_shifts.end_date')
+                            ->orWhere('essentials_user_shifts.end_date', '>=', $clock_in_date);
                     })
                     ->select('essentials_user_shifts.*', 's.holidays', 's.start_time', 's.end_time', 's.type')
                     ->get();
 
                     
         foreach ($user_shifts as $shift) {
-            $holidays = json_decode($shift->holidays, true);
+            $holidays = is_array($shift->holidays) ? $shift->holidays : json_decode($shift->holidays, true);
             //check if holiday
             if (is_array($holidays) && in_array($day_string, $holidays)) {
                 continue;
@@ -180,7 +186,7 @@ class EssentialsUtil extends Util
         //Check user can clockin
         $clock_in_time = is_object($data['clock_in_time']) ? $data['clock_in_time']->toDateTimeString() : $data['clock_in_time'];
 
-        $shift = $this->checkUserShift($data['user_id'], $essentials_settings, $clock_in_time);
+        $shift = $this->checkUserShift($data['user_id'], $essentials_settings, $clock_in_time, $data['business_id'] ?? null);
 
         if (empty($shift)) {
             $available_shifts = $this->getAllAvailableShiftsForGivenUser($data['business_id'], $data['user_id']);
@@ -270,12 +276,20 @@ class EssentialsUtil extends Util
 
     public function getAllAvailableShiftsForGivenUser($business_id, $user_id)
     {
+        $today = \Carbon::today()->format('Y-m-d');
+
         $available_user_shifts = EssentialsUserShift::join('essentials_shifts as s', 's.id', '=',
                                     'essentials_user_shifts.essentials_shift_id')
-                                    ->where('user_id', $user_id)
+                                    ->where('essentials_user_shifts.user_id', $user_id)
                                     ->where('s.business_id', $business_id)
-                                    ->whereDate('start_date', '<=', \Carbon::today())
-                                    ->whereDate('end_date', '>=', \Carbon::today())
+                                    ->where(function ($q) use ($today) {
+                                        $q->whereNull('essentials_user_shifts.start_date')
+                                            ->orWhere('essentials_user_shifts.start_date', '<=', $today);
+                                    })
+                                    ->where(function ($q) use ($today) {
+                                        $q->whereNull('essentials_user_shifts.end_date')
+                                            ->orWhere('essentials_user_shifts.end_date', '>=', $today);
+                                    })
                                     ->select('essentials_user_shifts.start_date', 'essentials_user_shifts.end_date',
                                         's.name', 's.type', 's.start_time', 's.end_time', 's.holidays')
                                     ->get();
