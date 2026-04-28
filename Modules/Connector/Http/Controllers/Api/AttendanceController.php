@@ -375,6 +375,7 @@ class AttendanceController extends ApiController
 
             return $this->respond([
                 'success' => true,
+                'device_allowed' => true,
                 'msg' => __('essentials::lang.device_registered_success'),
                 'type' => 'device_check',
             ]);
@@ -386,12 +387,14 @@ class AttendanceController extends ApiController
         if ($storedName === $devName && $storedNumber === $devNumber) {
             return $this->respond([
                 'success' => true,
+                'device_allowed' => true,
                 'msg' => __('essentials::lang.device_verified_success'),
                 'type' => 'device_check',
             ]);
         }
 
         return response()->json([
+            'device_allowed' => false,
             'error' => [
                 'message' => __('essentials::lang.device_not_registered_contact_admin'),
                 'code' => 'DEVICE_NOT_REGISTERED',
