@@ -8,6 +8,8 @@ use App\Utils\ModuleUtil;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Modules\Essentials\Entities\EssentialsUserDevice;
 use Modules\Connector\Transformers\CommonResource;
 
 /**
@@ -326,6 +328,75 @@ class AttendanceController extends ApiController
 
             return $this->otherExceptions($e);
         }
+    }
+
+    /**
+     * Verify / register mobile device fingerprint for the authenticated employee.
+     *
+     * @bodyParam dev_name string required Example: Pixel 8
+     * @bodyParam dev_number string required Example: abc123-device-id
+     */
+    public function checkDevice(Request $request)
+    {
+        if (! $this->moduleUtil->isModuleInstalled('Essentials')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user = Auth::user();
+
+        if (! $user->can('essentials.allow_users_for_attendance_from_api')) {
+            return $this->respondUnauthorized();
+        }
+
+        $validator = Validator::make($request->all(), [
+            'dev_name' => 'required|string|max:512',
+            'dev_number' => 'required|string|max:512',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->setStatusCode(422)->respondWithError($validator->errors()->first());
+        }
+
+        $business_id = $user->business_id;
+        $devName = trim((string) $request->input('dev_name'));
+        $devNumber = trim((string) $request->input('dev_number'));
+
+        $record = EssentialsUserDevice::where('user_id', $user->id)
+            ->where('business_id', $business_id)
+            ->first();
+
+        if ($record === null) {
+            EssentialsUserDevice::create([
+                'user_id' => $user->id,
+                'business_id' => $business_id,
+                'dev_name' => $devName,
+                'dev_number' => $devNumber,
+            ]);
+
+            return $this->respond([
+                'success' => true,
+                'msg' => __('essentials::lang.device_registered_success'),
+                'type' => 'device_check',
+            ]);
+        }
+
+        $storedName = trim((string) $record->dev_name);
+        $storedNumber = trim((string) $record->dev_number);
+
+        if ($storedName === $devName && $storedNumber === $devNumber) {
+            return $this->respond([
+                'success' => true,
+                'msg' => __('essentials::lang.device_verified_success'),
+                'type' => 'device_check',
+            ]);
+        }
+
+        return response()->json([
+            'error' => [
+                'message' => __('essentials::lang.device_not_registered_contact_admin'),
+                'code' => 'DEVICE_NOT_REGISTERED',
+            ],
+        ], 400);
     }
 
     /**

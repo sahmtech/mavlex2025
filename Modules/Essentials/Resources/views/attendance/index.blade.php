@@ -82,6 +82,9 @@
                     <li>
                         <a href="#import_attendance_tab" data-toggle="tab" aria-expanded="true"><i class="fas fa-download" aria-hidden="true"></i> @lang('essentials::lang.import_attendance')</a>
                     </li>
+                    <li>
+                        <a href="#employee_devices_tab" data-toggle="tab" aria-expanded="true"><i class="fas fa-mobile-alt" aria-hidden="true"></i> @lang('essentials::lang.employee_devices')</a>
+                    </li>
                     @endcan
                 </ul>
                 <div class="tab-content">
@@ -185,6 +188,22 @@
                     @can('essentials.crud_all_attendance')
                         <div class="tab-pane" id="import_attendance_tab">
                             @include('essentials::attendance.import_attendance')
+                        </div>
+                        <div class="tab-pane" id="employee_devices_tab">
+                            <p class="help-block text-muted">@lang('essentials::lang.employee_devices_help')</p>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="employee_devices_table" style="width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th>@lang('essentials::lang.employee')</th>
+                                            <th>@lang('essentials::lang.device_dev_name')</th>
+                                            <th>@lang('essentials::lang.device_dev_number')</th>
+                                            <th>@lang('lang_v1.updated_at')</th>
+                                            <th>@lang('messages.action')</th>
+                                        </tr>
+                                    </thead>
+                                </table>
+                            </div>
                         </div>
                     @endcan
                 </div>
@@ -317,6 +336,22 @@
                 ],
             });
 
+            @can('essentials.crud_all_attendance')
+            employee_devices_table = $('#employee_devices_table').DataTable({
+                processing: true,
+                serverSide: true,
+                fixedHeader: false,
+                ajax: "{{ action([\Modules\Essentials\Http\Controllers\AttendanceController::class, 'employeeDevices']) }}",
+                columns: [
+                    { data: 'employee_name', name: 'employee_name' },
+                    { data: 'dev_name', name: 'essentials_user_devices.dev_name' },
+                    { data: 'dev_number', name: 'essentials_user_devices.dev_number' },
+                    { data: 'updated_at', name: 'essentials_user_devices.updated_at' },
+                    { data: 'action', name: 'action', orderable: false, searchable: false },
+                ],
+            });
+            @endcan
+
             $('#shift_modal, #edit_shift_modal').on('shown.bs.modal', function(e) {
                 $('form#add_shift_form').validate();
                 $('#shift_modal #start_time, #shift_modal #end_time, #edit_shift_modal #start_time, #edit_shift_modal #end_time').datetimepicker({
@@ -410,6 +445,11 @@
             $('a[href="#attendance_by_date_tab"]').click(function(){
                 get_attendance_by_date();
             });
+            $('a[href="#employee_devices_tab"]').click(function(){
+                if (typeof employee_devices_table !== 'undefined') {
+                    employee_devices_table.ajax.reload();
+                }
+            });
         });
 
         $(document).on('click', 'button.delete-attendance', function() {
@@ -431,6 +471,38 @@
                             if (result.success == true) {
                                 toastr.success(result.msg);
                                 attendance_table.ajax.reload();
+                            } else {
+                                toastr.error(result.msg);
+                            }
+                        },
+                    });
+                }
+            });
+        });
+
+        $(document).on('click', 'button.delete-employee-device', function() {
+            var btn = $(this);
+            swal({
+                title: LANG.sure,
+                icon: 'warning',
+                buttons: true,
+                dangerMode: true,
+            }).then(function(willDelete) {
+                if (willDelete) {
+                    var href = btn.data('href');
+                    $.ajax({
+                        method: 'DELETE',
+                        url: href,
+                        dataType: 'json',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(result) {
+                            if (result.success == true) {
+                                toastr.success(result.msg);
+                                if (typeof employee_devices_table !== 'undefined') {
+                                    employee_devices_table.ajax.reload();
+                                }
                             } else {
                                 toastr.error(result.msg);
                             }

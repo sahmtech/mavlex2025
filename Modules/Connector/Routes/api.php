@@ -67,6 +67,7 @@ Route::middleware('auth:api', 'timezone')->prefix('connector/api')->group(functi
     Route::get('getAttendanceByDate', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'getAttendanceByDate']);
     Route::post('clock-in', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'clockin']);
     Route::post('clock-out', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'clockout']);
+    Route::post('checkDevice', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'checkDevice']);
     Route::get('holidays', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'getHolidays']);
     Route::post('update-password', [Modules\Connector\Http\Controllers\Api\UserController::class, 'updatePassword']);
     Route::post('forget-password', [Modules\Connector\Http\Controllers\Api\UserController::class, 'forgetPassword']);

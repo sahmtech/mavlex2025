@@ -71,6 +71,9 @@ Route::middleware('web', 'authh', 'auth', 'SetSessionData', 'language', 'timezon
             [Modules\Essentials\Http\Controllers\AttendanceController::class, 'getUserAttendanceSummary']
         );
 
+        Route::get('/employee-devices', [Modules\Essentials\Http\Controllers\AttendanceController::class, 'employeeDevices']);
+        Route::delete('/employee-devices/{id}', [Modules\Essentials\Http\Controllers\AttendanceController::class, 'destroyEmployeeDevice']);
+
         Route::get('/location-employees', [Modules\Essentials\Http\Controllers\PayrollController::class, 'getEmployeesBasedOnLocation']);
         Route::get('/my-payrolls', [Modules\Essentials\Http\Controllers\PayrollController::class, 'getMyPayrolls']);
         Route::get('/get-allowance-deduction-row', [Modules\Essentials\Http\Controllers\PayrollController::class, 'getAllowanceAndDeductionRow']);

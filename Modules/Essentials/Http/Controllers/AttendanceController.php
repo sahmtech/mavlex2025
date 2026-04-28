@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Modules\Essentials\Entities\EssentialsAttendance;
+use Modules\Essentials\Entities\EssentialsUserDevice;
 use Modules\Essentials\Entities\Shift;
 use Modules\Essentials\Utils\EssentialsUtil;
 use Spatie\Permission\Models\Permission;
@@ -739,5 +740,89 @@ class AttendanceController extends Controller
                     ->pluck('essentials_shifts.name', 'essentials_shifts.id');
 
         return view('essentials::attendance.attendance_row')->with(compact('attendance', 'shifts', 'user'));
+    }
+
+    /**
+     * Datatable: registered mobile devices (API fingerprints), same permission as full attendance CRUD.
+     *
+     * @return mixed
+     */
+    public function employeeDevices()
+    {
+        $business_id = request()->session()->get('user.business_id');
+
+        if (! auth()->user()->can('essentials.crud_all_attendance')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (! (auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'essentials_module'))) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (! request()->ajax()) {
+            abort(404);
+        }
+
+        $devices = EssentialsUserDevice::where('essentials_user_devices.business_id', $business_id)
+            ->join('users as u', 'u.id', '=', 'essentials_user_devices.user_id')
+            ->where('u.business_id', $business_id)
+            ->select([
+                'essentials_user_devices.id',
+                'essentials_user_devices.dev_name',
+                'essentials_user_devices.dev_number',
+                'essentials_user_devices.updated_at',
+                DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as employee_name"),
+            ])
+            ->orderBy('essentials_user_devices.updated_at', 'desc');
+
+        return Datatables::of($devices)
+            ->editColumn('updated_at', function ($row) {
+                return $this->moduleUtil->format_date($row->updated_at, true);
+            })
+            ->addColumn('action', function ($row) {
+                return '<button type="button" class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete-employee-device" data-href="'.action([\Modules\Essentials\Http\Controllers\AttendanceController::class, 'destroyEmployeeDevice'], [$row->id]).'"><i class="fa fa-trash"></i> '.__('messages.delete').'</button>';
+            })
+            ->rawColumns(['action'])
+            ->filterColumn('employee_name', function ($query, $keyword) {
+                $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
+            })
+            ->make(true);
+    }
+
+    /**
+     * Remove an employee device registration (mobile can register again on next check).
+     *
+     * @param  int  $id
+     * @return array|void
+     */
+    public function destroyEmployeeDevice($id)
+    {
+        $business_id = request()->session()->get('user.business_id');
+
+        if (! auth()->user()->can('essentials.crud_all_attendance')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (! (auth()->user()->can('superadmin') || $this->moduleUtil->hasThePermissionInSubscription($business_id, 'essentials_module'))) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if (request()->ajax()) {
+            try {
+                EssentialsUserDevice::where('business_id', $business_id)->where('id', $id)->delete();
+
+                return [
+                    'success' => true,
+                    'msg' => __('lang_v1.deleted_success'),
+                ];
+            } catch (\Exception $e) {
+                \Log::emergency('File:'.$e->getFile().'Line:'.$e->getLine().'Message:'.$e->getMessage());
+
+                return [
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
+                ];
+            }
+        }
     }
 }
