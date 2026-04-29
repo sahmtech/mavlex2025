@@ -176,11 +176,11 @@ class EssentialsController extends ApiController
                     });
             })
             ->with([
-                'assigned_by:id,surname,first_name,middle_name,last_name',
-                'users:id,surname,first_name,middle_name,last_name',
-                'comments.added_by:id,surname,first_name,middle_name,last_name',
+                'assigned_by:id,surname,first_name,last_name',
+                'users:id,surname,first_name,last_name',
+                'comments.added_by:id,surname,first_name,last_name',
                 'comments.media',
-                'media.uploaded_by_user:id,surname,first_name,middle_name,last_name',
+                'media.uploaded_by_user:id,surname,first_name,last_name',
             ])
             ->orderByDesc('date')
             ->orderByDesc('id');
