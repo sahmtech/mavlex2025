@@ -55,6 +55,7 @@ Route::middleware('auth:api', 'timezone')->prefix('connector/api')->group(functi
 
     Route::get('home', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'home']);
     Route::get('essentials/getPayrollDetails', [Modules\Connector\Http\Controllers\Api\EssentialsController::class, 'getPayrollDetails']);
+    Route::get('essentials/getMyToDo', [Modules\Connector\Http\Controllers\Api\EssentialsController::class, 'getMyToDo']);
 
     Route::get('business-details', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'getBusinessDetails']);
 
