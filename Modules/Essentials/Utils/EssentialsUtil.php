@@ -155,6 +155,51 @@ class EssentialsUtil extends Util
     }
 
     /**
+     * First shift assigned for the current calendar day (for home / display), skipping shift "holidays".
+     * Returns raw shift start/end times from DB, or null if none applies.
+     *
+     * @return array{start_time: ?string, end_time: ?string, type: string}|null
+     */
+    public function getTodayScheduledShiftForDisplay(int $user_id, ?int $business_id = null): ?array
+    {
+        $clock_in_datetime = \Carbon::now();
+        $clock_in_date = $clock_in_datetime->format('Y-m-d');
+        $day_string = strtolower($clock_in_datetime->format('l'));
+
+        $user_shifts = EssentialsUserShift::join('essentials_shifts as s', 's.id', '=', 'essentials_user_shifts.essentials_shift_id')
+            ->where('essentials_user_shifts.user_id', $user_id)
+            ->when(! empty($business_id), function ($q) use ($business_id) {
+                $q->where('s.business_id', $business_id);
+            })
+            ->where(function ($q) use ($clock_in_date) {
+                $q->whereNull('essentials_user_shifts.start_date')
+                    ->orWhere('essentials_user_shifts.start_date', '<=', $clock_in_date);
+            })
+            ->where(function ($q) use ($clock_in_date) {
+                $q->whereNull('essentials_user_shifts.end_date')
+                    ->orWhere('essentials_user_shifts.end_date', '>=', $clock_in_date);
+            })
+            ->select('essentials_user_shifts.*', 's.holidays', 's.start_time', 's.end_time', 's.type')
+            ->orderBy('essentials_user_shifts.id')
+            ->get();
+
+        foreach ($user_shifts as $shift) {
+            $holidays = is_array($shift->holidays) ? $shift->holidays : json_decode($shift->holidays, true);
+            if (is_array($holidays) && in_array($day_string, $holidays)) {
+                continue;
+            }
+
+            return [
+                'start_time' => $shift->start_time,
+                'end_time' => $shift->end_time,
+                'type' => (string) $shift->type,
+            ];
+        }
+
+        return null;
+    }
+
+    /**
      * Validates user clock out
      */
     public function canClockOut($clock_in, $settings, $clock_out_time = null)

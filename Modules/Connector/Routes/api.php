@@ -53,6 +53,8 @@ Route::middleware('auth:api', 'timezone')->prefix('connector/api')->group(functi
 
     // Route::resource('cash-register', Modules\Connector\Http\Controllers\Api\CashRegisterController::class)->only('index', 'store', 'show', 'update');
 
+    Route::get('home', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'home']);
+
     Route::get('business-details', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'getBusinessDetails']);
 
     Route::get('profit-loss-report', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'getProfitLoss']);

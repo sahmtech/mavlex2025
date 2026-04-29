@@ -3,12 +3,14 @@
 namespace Modules\Connector\Http\Controllers\Api;
 
 use App\Business;
+use App\Category;
 use App\User;
 use App\Utils\ModuleUtil;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Modules\Essentials\Entities\EssentialsAttendance;
 use Modules\Essentials\Entities\EssentialsUserDevice;
 use Modules\Connector\Transformers\CommonResource;
 
@@ -400,6 +402,115 @@ class AttendanceController extends ApiController
                 'code' => 'DEVICE_NOT_REGISTERED',
             ],
         ], 400);
+    }
+
+    /**
+     * Mobile home / dashboard summary (notifications, shift window, profile, attendance flags).
+     *
+     * @response {
+     *   "data": {
+     *     "new_notifications": 0,
+     *     "work_day_start": "12:00 PM",
+     *     "work_day_end": "08:00 PM",
+     *     "business_name": "Acme",
+     *     "request": null,
+     *     "full_name": "John Doe",
+     *     "image": null,
+     *     "work": "Developer",
+     *     "user_type": "employee",
+     *     "signed_in": false,
+     *     "signed_out": false
+     *   }
+     * }
+     */
+    public function home(Request $request)
+    {
+        if (! $this->moduleUtil->isModuleInstalled('Essentials')) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $user = Auth::user();
+        $user->loadMissing(['media']);
+
+        $business_id = (int) $user->business_id;
+        $business = Business::findOrFail($business_id);
+
+        $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil();
+        $shift = $essentialsUtil->getTodayScheduledShiftForDisplay((int) $user->id, $business_id);
+
+        $work_day_start = null;
+        $work_day_end = null;
+        if ($shift !== null) {
+            $work_day_start = $this->formatApiShiftTime($shift['start_time'] ?? null, $business);
+            $work_day_end = $this->formatApiShiftTime($shift['end_time'] ?? null, $business);
+        }
+
+        $work = '';
+        if (! empty($user->essentials_designation_id)) {
+            $designation = Category::find($user->essentials_designation_id);
+            $work = $designation && ! empty($designation->name) ? $designation->name : '';
+        }
+
+        $image = null;
+        if ($user->media && ! empty($user->media->display_url)) {
+            $image = $user->media->display_url;
+        }
+
+        $new_notifications = (int) $user->unreadNotifications()->count();
+
+        $signed_in = EssentialsAttendance::where('business_id', $business_id)
+            ->where('user_id', $user->id)
+            ->whereNull('clock_out_time')
+            ->exists();
+
+        $has_completed_today = EssentialsAttendance::where('business_id', $business_id)
+            ->where('user_id', $user->id)
+            ->whereDate('clock_in_time', \Carbon::now()->toDateString())
+            ->whereNotNull('clock_out_time')
+            ->exists();
+
+        $signed_out = ! $signed_in && $has_completed_today;
+
+        $user_type = (string) $user->user_type;
+        if ($user_type === 'user') {
+            $user_type = 'employee';
+        }
+
+        return response()->json([
+            'data' => [
+                'new_notifications' => $new_notifications,
+                'work_day_start' => $work_day_start,
+                'work_day_end' => $work_day_end,
+                'business_name' => $business->name,
+                'request' => null,
+                'full_name' => trim($user->user_full_name),
+                'image' => $image,
+                'work' => $work,
+                'user_type' => $user_type,
+                'signed_in' => $signed_in,
+                'signed_out' => $signed_out,
+            ],
+        ]);
+    }
+
+    /**
+     * @param  mixed  $time
+     */
+    protected function formatApiShiftTime($time, Business $business): ?string
+    {
+        if ($time === null || $time === '') {
+            return null;
+        }
+
+        try {
+            $c = \Carbon\Carbon::parse($time);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $fmt = ((int) $business->time_format === 12) ? 'h:i A' : 'H:i';
+
+        return $c->format($fmt);
     }
 
     /**
