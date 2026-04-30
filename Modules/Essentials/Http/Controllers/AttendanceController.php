@@ -103,7 +103,15 @@ class AttendanceController extends Controller
             return Datatables::of($attendance)
                     ->addColumn(
                         'action',
-                        '@can("essentials.crud_all_attendance") <button data-href="{{action(\'\Modules\Essentials\Http\Controllers\AttendanceController@edit\', [$id])}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-modal" data-container="#edit_attendance_modal"><i class="glyphicon glyphicon-edit"></i> @lang("messages.edit")</button>
+                        '@can("essentials.crud_all_attendance")
+                        <button type="button"
+                            class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-accent btn-attendance-locations"
+                            data-clock-in-location="{{ $clock_in_location }}"
+                            data-clock-out-location="{{ $clock_out_location }}"
+                            title="@lang("essentials::lang.attendance")">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                        <button data-href="{{action(\'\Modules\Essentials\Http\Controllers\AttendanceController@edit\', [$id])}}" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-modal" data-container="#edit_attendance_modal"><i class="glyphicon glyphicon-edit"></i> @lang("messages.edit")</button>
                         <button class="tw-dw-btn tw-dw-btn-outline tw-dw-btn-xs tw-dw-btn-error delete-attendance" data-href="{{action(\'\Modules\Essentials\Http\Controllers\AttendanceController@destroy\', [$id])}}"><i class="fa fa-trash"></i> @lang("messages.delete")</button> @endcan
                         '
                     )
@@ -121,22 +129,11 @@ class AttendanceController extends Controller
                     })
                     ->editColumn('clock_in', function ($row) {
                         $html = $this->moduleUtil->format_date($row->clock_in_time, true);
-
-                        return $html;
-                    })
-                    ->addColumn('locations', function ($row) {
-                        $in = ! empty($row->clock_in_location) ? e($row->clock_in_location) : '';
-                        $out = ! empty($row->clock_out_location) ? e($row->clock_out_location) : '';
-
-                        if ($in === '' && $out === '') {
-                            return '<span class="text-muted">'.e(__('lang_v1.none')).'</span>';
+                        if (! empty($row->clock_in_location)) {
+                            $html .= '<br>'.e($row->clock_in_location).'<br>';
                         }
 
-                        return '<button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-attendance-locations"'
-                            .' data-clock-in-location="'.$in.'"'
-                            .' data-clock-out-location="'.$out.'">'
-                            .'<i class="fa fa-eye"></i>'
-                            .'</button>';
+                        return $html;
                     })
                     ->editColumn('clock_in_note', function ($row) {
                         return ! empty($row->clock_in_note)
@@ -156,6 +153,9 @@ class AttendanceController extends Controller
                     })
                     ->editColumn('clock_out', function ($row) {
                         $html = $this->moduleUtil->format_date($row->clock_out_time, true);
+                        if (! empty($row->clock_out_location)) {
+                            $html .= '<br>'.$row->clock_out_location.'<br>';
+                        }
 
                         if (! empty($row->clock_out_note)) {
                             $html .= '<br>'.$row->clock_out_note.'<br>';
@@ -164,7 +164,7 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('date', '{{@format_date($date)}}')
-                    ->rawColumns(['action', 'clock_in', 'locations', 'work_duration', 'clock_out', 'clock_in_note', 'geofence_zone'])
+                    ->rawColumns(['action', 'clock_in', 'work_duration', 'clock_out', 'clock_in_note', 'geofence_zone'])
                     ->filterColumn('user', function ($query, $keyword) {
                         $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
                     })
