@@ -458,14 +458,18 @@ class AttendanceController extends ApiController
 
         $new_notifications = (int) $user->unreadNotifications()->count();
 
+        // Attendance flags should reflect today's status only.
+        $today = \Carbon\Carbon::now()->toDateString();
+
         $signed_in = EssentialsAttendance::where('business_id', $business_id)
             ->where('user_id', $user->id)
+            ->whereDate('clock_in_time', $today)
             ->whereNull('clock_out_time')
             ->exists();
 
         $has_completed_today = EssentialsAttendance::where('business_id', $business_id)
             ->where('user_id', $user->id)
-            ->whereDate('clock_in_time', \Carbon::now()->toDateString())
+            ->whereDate('clock_in_time', $today)
             ->whereNotNull('clock_out_time')
             ->exists();
 
