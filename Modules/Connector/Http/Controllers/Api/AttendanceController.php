@@ -217,12 +217,16 @@ class AttendanceController extends ApiController
                 if (empty($long) || empty($lat)) {
                     throw new \Exception('Latitude and longitude are required');
                 }
+            }
 
-                $response = $essentialsUtil->getLocationFromCoordinates($lat, $long);
-
-                if (! empty($response)) {
-                    $data['clock_in_location'] = $response;
-                }
+            // Persist a display location whenever coordinates are sent (not only when is_location_required).
+            $resolved_in = $this->resolveAttendanceLocationFromCoordinates(
+                $essentialsUtil,
+                $request->input('latitude'),
+                $request->input('longitude')
+            );
+            if ($resolved_in !== null) {
+                $data['clock_in_location'] = $resolved_in;
             }
 
             $output = $essentialsUtil->clockin($data, $settings);
@@ -297,12 +301,15 @@ class AttendanceController extends ApiController
                 if (empty($long) || empty($lat)) {
                     throw new \Exception('Latitude and longitude are required');
                 }
+            }
 
-                $response = $essentialsUtil->getLocationFromCoordinates($lat, $long);
-
-                if (! empty($response)) {
-                    $data['clock_out_location'] = $response;
-                }
+            $resolved_out = $this->resolveAttendanceLocationFromCoordinates(
+                $essentialsUtil,
+                $request->input('latitude'),
+                $request->input('longitude')
+            );
+            if ($resolved_out !== null) {
+                $data['clock_out_location'] = $resolved_out;
             }
 
             $output = $essentialsUtil->clockout($data, $settings);
@@ -559,5 +566,28 @@ class AttendanceController extends ApiController
         $holidays = $query->get();
 
         return new CommonResource($holidays);
+    }
+
+    /**
+     * Reverse-geocode GPS to a saved address when possible; otherwise store raw coordinates so admin UI is not empty.
+     *
+     * @param  mixed  $latitude
+     * @param  mixed  $longitude
+     */
+    protected function resolveAttendanceLocationFromCoordinates(\Modules\Essentials\Utils\EssentialsUtil $essentialsUtil, $latitude, $longitude): ?string
+    {
+        if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
+            return null;
+        }
+
+        $resolved = $essentialsUtil->getLocationFromCoordinates($latitude, $longitude);
+        if (! empty($resolved)) {
+            return $resolved;
+        }
+
+        return __('essentials::lang.attendance_coordinates_fallback', [
+            'lat' => $latitude,
+            'lng' => $longitude,
+        ]);
     }
 }
