@@ -336,6 +336,13 @@ class EssentialsUtil extends Util
             $data['location_id'] ?? null
         );
 
+        $lat_in = $data['latitude'] ?? null;
+        $lng_in = $data['longitude'] ?? null;
+        if ($lat_in !== null && $lat_in !== '' && $lng_in !== null && $lng_in !== '') {
+            $data['clock_in_latitude'] = round((float) $lat_in, 7);
+            $data['clock_in_longitude'] = round((float) $lng_in, 7);
+        }
+
         unset($data['latitude'], $data['longitude'], $data['location_id']);
 
         //Check if already clocked in
@@ -419,6 +426,13 @@ class EssentialsUtil extends Util
                     'msg' => __('essentials::lang.attendance_note_required_early_clock_out'),
                     'type' => 'clock_out',
                 ];
+            }
+
+            $lat_out = $data['latitude'] ?? null;
+            $lng_out = $data['longitude'] ?? null;
+            if ($lat_out !== null && $lat_out !== '' && $lng_out !== null && $lng_out !== '') {
+                $clock_in->clock_out_latitude = round((float) $lat_out, 7);
+                $clock_in->clock_out_longitude = round((float) $lng_out, 7);
             }
 
             unset($data['latitude'], $data['longitude'], $data['location_id']);

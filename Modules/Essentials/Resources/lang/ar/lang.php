@@ -86,6 +86,7 @@ return[
 "clock_out_note" => "ملاحظة تسجيل خروج",
 "view_attendance_locations" => "عرض مواقع الحضور والانصراف",
 "attendance_coordinates_fallback" => "إحداثيات GPS: :lat، :lng",
+"attendance_locations_map" => "الخريطة",
 "clock_in" => "تسجيل الحضور",
 "clock_out" => "تسجيل انصراف",
 "clock_in_success" => "تم تسجيل الدخول بنجاح",

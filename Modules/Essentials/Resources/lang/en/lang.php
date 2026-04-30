@@ -88,6 +88,7 @@ return [
     'clock_out_note' => 'Clock out note',
     'view_attendance_locations' => 'Show clock-in / clock-out locations',
     'attendance_coordinates_fallback' => 'GPS coordinates: :lat, :lng',
+    'attendance_locations_map' => 'Map',
     'clock_in' => 'Clock In',
     'clock_out' => 'Clock Out',
     'clock_in_success' => 'Clocked In successfully',

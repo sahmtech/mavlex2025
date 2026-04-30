@@ -69,7 +69,13 @@ class AttendanceController extends Controller
                                 'ip_address',
                                 DB::raw('DATE(clock_in_time) as date'),
                                 DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as user"),
-                                'es.name as shift_name', 'clock_in_location', 'clock_out_location',
+                                'es.name as shift_name',
+                                'clock_in_location',
+                                'clock_in_latitude',
+                                'clock_in_longitude',
+                                'clock_out_location',
+                                'clock_out_latitude',
+                                'clock_out_longitude',
                             ])->groupBy('essentials_attendances.id');
 
             $permitted_locations = auth()->user()->permitted_locations();
@@ -108,12 +114,20 @@ class AttendanceController extends Controller
 
                         $in_loc = $row->clock_in_location ?? '';
                         $out_loc = $row->clock_out_location ?? '';
+                        $in_lat = $row->clock_in_latitude ?? '';
+                        $in_lng = $row->clock_in_longitude ?? '';
+                        $out_lat = $row->clock_out_latitude ?? '';
+                        $out_lng = $row->clock_out_longitude ?? '';
                         $title = __('essentials::lang.view_attendance_locations');
 
                         $eye_btn = '<button type="button"'
                             .' class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-attendance-locations"'
                             .' data-clock-in-location="'.e($in_loc).'"'
                             .' data-clock-out-location="'.e($out_loc).'"'
+                            .' data-clock-in-lat="'.e($in_lat).'"'
+                            .' data-clock-in-lng="'.e($in_lng).'"'
+                            .' data-clock-out-lat="'.e($out_lat).'"'
+                            .' data-clock-out-lng="'.e($out_lng).'"'
                             .' title="'.e($title).'">'
                             .'<i class="fa fa-eye" aria-hidden="true"></i>'
                             .' <span class="hidden-xs">'.e(__('messages.view')).'</span>'

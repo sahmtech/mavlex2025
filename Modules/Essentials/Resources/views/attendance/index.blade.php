@@ -227,7 +227,7 @@
     @include('essentials::attendance.shift_modal')
 </div>
 <div class="modal fade" id="attendance_locations_modal" tabindex="-1" role="dialog" aria-labelledby="attendanceLocationsLabel">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -236,6 +236,20 @@
                 <h4 class="modal-title" id="attendanceLocationsLabel">@lang('essentials::lang.attendance')</h4>
             </div>
             <div class="modal-body">
+                <div id="attendance_locations_map_container" class="form-group hide">
+                    <label>@lang('essentials::lang.attendance_locations_map')</label>
+                    <div style="margin-bottom:8px;font-size:12px;color:#555;">
+                        <span style="display:inline-block;margin-left:14px;">
+                            <span style="display:inline-block;vertical-align:middle;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);background:#22c55e;"></span>
+                            @lang('essentials::lang.clock_in')
+                        </span>
+                        <span style="display:inline-block;margin-left:14px;">
+                            <span style="display:inline-block;vertical-align:middle;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);background:#ef4444;"></span>
+                            @lang('essentials::lang.clock_out')
+                        </span>
+                    </div>
+                    <div id="attendance_locations_map" style="height:320px;width:100%;border-radius:8px;border:1px solid #ddd;"></div>
+                </div>
                 <div class="form-group">
                     <label>@lang('essentials::lang.clock_in_location')</label>
                     <div class="well well-sm" id="attendance_clock_in_location_text"></div>
@@ -307,12 +321,158 @@
                 attendance_table.ajax.reload();
             });
 
+            function loadLeafletForAttendanceMap(callback) {
+                if (window.L && typeof L.map === 'function') {
+                    callback();
+                    return;
+                }
+                window._leafletAttendanceCallbacks = window._leafletAttendanceCallbacks || [];
+                window._leafletAttendanceCallbacks.push(callback);
+                if (window._leafletAttendanceScriptLoading) {
+                    return;
+                }
+                window._leafletAttendanceScriptLoading = true;
+                if (!document.querySelector('link[href*="leaflet.css"]')) {
+                    var link = document.createElement('link');
+                    link.rel = 'stylesheet';
+                    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+                    document.head.appendChild(link);
+                }
+                var s = document.createElement('script');
+                s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+                s.onload = function() {
+                    window._leafletAttendanceScriptLoading = false;
+                    var cbs = window._leafletAttendanceCallbacks || [];
+                    window._leafletAttendanceCallbacks = [];
+                    for (var i = 0; i < cbs.length; i++) {
+                        cbs[i]();
+                    }
+                };
+                s.onerror = function() {
+                    window._leafletAttendanceScriptLoading = false;
+                    window._leafletAttendanceCallbacks = [];
+                };
+                document.head.appendChild(s);
+            }
+
+            function parseCoordsFromLocationText(txt) {
+                if (!txt || typeof txt !== 'string') {
+                    return null;
+                }
+                var m = txt.trim().match(/([\d]+(?:\.[\d]+)?)\s*[،,]\s*([\d]+(?:\.[\d]+)?)/);
+                if (!m) {
+                    return null;
+                }
+                var lat = parseFloat(m[1]);
+                var lng = parseFloat(m[2]);
+                if (!isFinite(lat) || !isFinite(lng)) {
+                    return null;
+                }
+                return {lat: lat, lng: lng};
+            }
+
+            function destroyAttendanceLocationsMap() {
+                if (window._attendanceLocationsLeafletMap) {
+                    window._attendanceLocationsLeafletMap.remove();
+                    window._attendanceLocationsLeafletMap = null;
+                }
+                var el = document.getElementById('attendance_locations_map');
+                if (el) {
+                    el.innerHTML = '';
+                }
+            }
+
+            function renderAttendanceLocationsMap(inPt, outPt) {
+                destroyAttendanceLocationsMap();
+                var pts = [];
+                if (inPt) {
+                    pts.push({ll: inPt, t: 'in'});
+                }
+                if (outPt) {
+                    pts.push({ll: outPt, t: 'out'});
+                }
+                if (!pts.length) {
+                    $('#attendance_locations_map_container').addClass('hide');
+                    return;
+                }
+                $('#attendance_locations_map_container').removeClass('hide');
+                loadLeafletForAttendanceMap(function() {
+                    if (typeof L === 'undefined') {
+                        return;
+                    }
+                    var map = L.map('attendance_locations_map', {scrollWheelZoom: true});
+                    window._attendanceLocationsLeafletMap = map;
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; OpenStreetMap',
+                    }).addTo(map);
+
+                    var iconIn = L.divIcon({
+                        className: 'attendance-loc-marker-in',
+                        html: '<div style="width:24px;height:24px;background:#22c55e;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12],
+                    });
+                    var iconOut = L.divIcon({
+                        className: 'attendance-loc-marker-out',
+                        html: '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12],
+                    });
+
+                    var latLngs = [];
+                    for (var i = 0; i < pts.length; i++) {
+                        var ic = pts[i].t === 'in' ? iconIn : iconOut;
+                        L.marker(pts[i].ll, {icon: ic}).addTo(map);
+                        latLngs.push(pts[i].ll);
+                    }
+                    if (latLngs.length === 1) {
+                        map.setView(latLngs[0], 16);
+                    } else {
+                        map.fitBounds(L.latLngBounds(latLngs), {padding: [48, 48], maxZoom: 17});
+                    }
+                    setTimeout(function() {
+                        map.invalidateSize();
+                    }, 300);
+                });
+            }
+
+            $('#attendance_locations_modal').on('shown.bs.modal', function() {
+                if (window._attendanceLocationsLeafletMap) {
+                    window._attendanceLocationsLeafletMap.invalidateSize();
+                }
+            });
+
+            $('#attendance_locations_modal').on('hidden.bs.modal', function() {
+                destroyAttendanceLocationsMap();
+                $('#attendance_locations_map_container').addClass('hide');
+            });
+
             $(document).on('click', '.btn-attendance-locations', function() {
-                var inLoc = $(this).data('clock-in-location') || '';
-                var outLoc = $(this).data('clock-out-location') || '';
+                var $b = $(this);
+                var inLoc = $b.data('clock-in-location') || '';
+                var outLoc = $b.data('clock-out-location') || '';
                 $('#attendance_clock_in_location_text').text(inLoc ? inLoc : "{{__('lang_v1.none')}}");
                 $('#attendance_clock_out_location_text').text(outLoc ? outLoc : "{{__('lang_v1.none')}}");
+
+                function pickLatLng(latAttr, lngAttr, locText) {
+                    var la = parseFloat(latAttr);
+                    var ln = parseFloat(lngAttr);
+                    if (isFinite(la) && isFinite(ln)) {
+                        return [la, ln];
+                    }
+                    var parsed = parseCoordsFromLocationText(locText);
+                    if (parsed) {
+                        return [parsed.lat, parsed.lng];
+                    }
+                    return null;
+                }
+
+                var inPt = pickLatLng($b.attr('data-clock-in-lat'), $b.attr('data-clock-in-lng'), inLoc);
+                var outPt = pickLatLng($b.attr('data-clock-out-lat'), $b.attr('data-clock-out-lng'), outLoc);
+
                 $('#attendance_locations_modal').modal('show');
+                renderAttendanceLocationsMap(inPt, outPt);
             });
 
             $(document).on('submit', 'form#attendance_form', function(e) {
