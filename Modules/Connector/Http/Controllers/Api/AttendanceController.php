@@ -296,12 +296,21 @@ class AttendanceController extends ApiController
 
             $data = [
                 'business_id' => $business_id,
-                'user_id' => $request->input('user_id'),
+                // Match clock-in behavior: default to authenticated user.
+                'user_id' => $request->filled('user_id') ? (int) $request->input('user_id') : $user->id,
                 'clock_out_time' => empty($request->input('clock_out_time')) ? \Carbon::now() : $request->input('clock_out_time'),
-                'clock_out_note' => $request->input('clock_out_note'),
+                // Support mobile payload key `clock_in_note` as an alias for clock_out_note.
+                'clock_out_note' => $request->input('clock_out_note', $request->input('clock_in_note')),
             ];
 
             $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil;
+
+            if ($request->hasFile('clockout_image')) {
+                $path = $request->file('clockout_image')->store('clock_out_images', 'public');
+                if (! empty($path)) {
+                    $data['clock_out_image'] = $path;
+                }
+            }
 
             if (! empty($settings['is_location_required'])) {
                 $long = $request->input('longitude');

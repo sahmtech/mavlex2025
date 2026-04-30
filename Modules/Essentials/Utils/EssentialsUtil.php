@@ -305,6 +305,9 @@ class EssentialsUtil extends Util
             $clock_in->clock_out_time = $data['clock_out_time'];
             $clock_in->clock_out_note = $data['clock_out_note'];
             $clock_in->clock_out_location = $data['clock_out_location'] ?? '';
+            if (! empty($data['clock_out_image'])) {
+                $clock_in->clock_out_image = $data['clock_out_image'];
+            }
             $clock_in->save();
 
             $output = ['success' => true,
