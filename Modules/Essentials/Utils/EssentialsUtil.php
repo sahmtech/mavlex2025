@@ -230,6 +230,7 @@ class EssentialsUtil extends Util
     {
         //Check user can clockin
         $clock_in_time = is_object($data['clock_in_time']) ? $data['clock_in_time']->toDateTimeString() : $data['clock_in_time'];
+        $clock_in_date = \Carbon\Carbon::parse($clock_in_time)->toDateString();
 
         $shift = $this->checkUserShift($data['user_id'], $essentials_settings, $clock_in_time, $data['business_id'] ?? null);
 
@@ -254,6 +255,7 @@ class EssentialsUtil extends Util
         //Check if already clocked in
         $count = EssentialsAttendance::where('business_id', $data['business_id'])
                                 ->where('user_id', $data['user_id'])
+                                ->whereDate('clock_in_time', $clock_in_date)
                                 ->whereNull('clock_out_time')
                                 ->count();
         if ($count == 0) {
