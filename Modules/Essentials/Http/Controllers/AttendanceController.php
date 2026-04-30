@@ -388,14 +388,9 @@ class AttendanceController extends Controller
                     'clock_in_note' => $request->input('clock_in_note'),
                     'ip_address' => $this->moduleUtil->getUserIpAddr(),
                     'clock_in_location' => $request->input('clock_in_out_location'),
-                    'clock_in_geofence_status' => $this->essentialsUtil->getClockInGeofenceStatus(
-                        $business_id,
-                        auth()->user(),
-                        $request->input('clock_in_latitude'),
-                        $request->input('clock_in_longitude'),
-                        $request->input('clock_in_note'),
-                        null
-                    ),
+                    'latitude' => $request->input('clock_in_latitude'),
+                    'longitude' => $request->input('clock_in_longitude'),
+                    'location_id' => null,
                 ];
 
                 $output = $this->essentialsUtil->clockin($data, $settings);
@@ -406,6 +401,9 @@ class AttendanceController extends Controller
                     'clock_out_time' => \Carbon::now(),
                     'clock_out_note' => $request->input('clock_out_note'),
                     'clock_out_location' => $request->input('clock_in_out_location'),
+                    'latitude' => $request->input('clock_in_latitude'),
+                    'longitude' => $request->input('clock_in_longitude'),
+                    'location_id' => null,
                 ];
 
                 $output = $this->essentialsUtil->clockout($data, $settings);

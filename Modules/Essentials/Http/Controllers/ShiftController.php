@@ -127,6 +127,8 @@ class ShiftController extends Controller
 
             $input['is_allowed_auto_clockout'] = ! empty($request->input('is_allowed_auto_clockout')) ? 1 : 0;
 
+            $input['allow_clock_outside_geofence'] = ! empty($request->input('allow_clock_outside_geofence')) ? 1 : 0;
+
             if (! empty($request->input('auto_clockout_time'))) {
                 $input['auto_clockout_time'] = $this->moduleUtil->uf_time($request->input('auto_clockout_time'));
             }
@@ -211,6 +213,8 @@ class ShiftController extends Controller
             }
 
             $input['is_allowed_auto_clockout'] = ! empty($request->input('is_allowed_auto_clockout')) ? 1 : 0;
+
+            $input['allow_clock_outside_geofence'] = ! empty($request->input('allow_clock_outside_geofence')) ? 1 : 0;
 
             if (! empty($request->input('auto_clockout_time'))) {
                 $input['auto_clockout_time'] = $this->moduleUtil->uf_time($request->input('auto_clockout_time'));

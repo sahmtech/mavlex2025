@@ -27,6 +27,7 @@ class Shift extends Model
      */
     protected $casts = [
         'holidays' => 'array',
+        'allow_clock_outside_geofence' => 'boolean',
     ];
 
     public function user_shifts($value = '')

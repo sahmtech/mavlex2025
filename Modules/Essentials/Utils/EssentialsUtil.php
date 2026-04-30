@@ -141,7 +141,13 @@ class EssentialsUtil extends Util
                 $start_start_time = \Carbon::parse($shift->start_time)->subMinutes($grace_before_checkin);
                 $start_end_time = \Carbon::parse($shift->start_time)->addMinutes($grace_after_checkin);
 
-                if(\Carbon::parse($clock_in_time)->between($start_start_time, $start_end_time)){
+                if (\Carbon::parse($clock_in_time)->between($start_start_time, $start_end_time)) {
+                    return $shift->essentials_shift_id;
+                }
+
+                // Fixed shift: allow clock-in after the grace window (late arrival); note rules are enforced in clockin().
+                if (($shift->type ?? '') !== 'flexible_shift'
+                    && \Carbon::parse($clock_in_time)->gt($start_end_time)) {
                     return $shift->essentials_shift_id;
                 }
             }
@@ -200,30 +206,50 @@ class EssentialsUtil extends Util
     }
 
     /**
-     * Validates user clock out
+     * Fixed shifts: require a clock-out note when checking out before the allowed checkout window starts.
+     *
+     * @return array{requires_early_note: bool}
      */
-    public function canClockOut($clock_in, $settings, $clock_out_time = null)
+    protected function evaluateClockOutPolicy($clock_in, array $settings, $clock_out_time): array
     {
         $shift = Shift::find($clock_in->essentials_shift_id);
-        if (empty($shift->end_time)) {
-            return true;
+        if (empty($shift) || $shift->type == 'flexible_shift' || empty($shift->end_time)) {
+            return ['requires_early_note' => false];
         }
+
         $grace_before_checkout = ! empty($settings['grace_before_checkout']) ? (int) $settings['grace_before_checkout'] : 0;
         $grace_after_checkout = ! empty($settings['grace_after_checkout']) ? (int) $settings['grace_after_checkout'] : 0;
 
-        if ($shift->type != 'flexible_shift') {
+        $base_date = \Carbon::parse($clock_out_time)->format('Y-m-d');
+        $end_moment = \Carbon::parse($base_date.' '.$this->normalizeTimeString($shift->end_time));
+        $window_start = $end_moment->copy()->subMinutes($grace_before_checkout);
+        $window_end = $end_moment->copy()->addMinutes($grace_after_checkout);
 
-            $end_start_time = \Carbon::parse($shift->end_time)->subMinutes($grace_before_checkout);
-            $end_end_time = \Carbon::parse($shift->end_time)->addMinutes($grace_after_checkout);
+        $co = \Carbon::parse($clock_out_time);
 
-            if(\Carbon::parse($clock_out_time)->between($end_start_time, $end_end_time)){
-                return true;
-            }
-        } elseif ($shift->type == 'flexible_shift') {
-            return true;
-        } else {
+        if ($co->between($window_start, $window_end)) {
+            return ['requires_early_note' => false];
+        }
+
+        if ($co->lt($window_start)) {
+            return ['requires_early_note' => true];
+        }
+
+        return ['requires_early_note' => false];
+    }
+
+    protected function requiresLateClockInNote(Shift $shift, array $settings, string $clock_in_datetime): bool
+    {
+        if ($shift->type == 'flexible_shift' || empty($shift->start_time)) {
             return false;
         }
+
+        $grace_after_checkin = ! empty($settings['grace_after_checkin']) ? (int) $settings['grace_after_checkin'] : 0;
+
+        $clock_in_time_only = \Carbon::parse($clock_in_datetime)->format('H:i');
+        $start_end_time = \Carbon::parse($shift->start_time)->addMinutes($grace_after_checkin);
+
+        return \Carbon::parse($clock_in_time_only)->gt($start_end_time);
     }
 
     public function clockin($data, $essentials_settings)
@@ -250,7 +276,67 @@ class EssentialsUtil extends Util
             return $output;
         }
 
+        $shift_row = Shift::find($shift);
+        if (empty($shift_row)) {
+            return [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+                'type' => 'clock_in',
+            ];
+        }
+
+        $employee = User::find($data['user_id']);
+        if (empty($employee)) {
+            return [
+                'success' => false,
+                'msg' => __('messages.something_went_wrong'),
+                'type' => 'clock_in',
+            ];
+        }
+
+        $allow_outside_geofence = ! empty($shift_row->allow_clock_outside_geofence);
+
+        $geo_error = $this->validateApiClockInGeofence(
+            (int) $data['business_id'],
+            $employee,
+            $data['latitude'] ?? null,
+            $data['longitude'] ?? null,
+            $data['clock_in_note'] ?? null,
+            $data['location_id'] ?? null,
+            $allow_outside_geofence
+        );
+
+        if ($geo_error !== null) {
+            return [
+                'success' => false,
+                'msg' => $geo_error['message'],
+                'type' => 'clock_in',
+            ];
+        }
+
+        if ($this->requiresLateClockInNote($shift_row, $essentials_settings, $clock_in_time)) {
+            $note = isset($data['clock_in_note']) ? trim((string) $data['clock_in_note']) : '';
+            if ($note === '') {
+                return [
+                    'success' => false,
+                    'msg' => __('essentials::lang.attendance_note_required_late_clock_in'),
+                    'type' => 'clock_in',
+                ];
+            }
+        }
+
         $data['essentials_shift_id'] = $shift;
+
+        $data['clock_in_geofence_status'] = $this->getClockInGeofenceStatus(
+            (int) $data['business_id'],
+            $employee,
+            $data['latitude'] ?? null,
+            $data['longitude'] ?? null,
+            $data['clock_in_note'] ?? null,
+            $data['location_id'] ?? null
+        );
+
+        unset($data['latitude'], $data['longitude'], $data['location_id']);
 
         //Check if already clocked in
         $count = EssentialsAttendance::where('business_id', $data['business_id'])
@@ -292,15 +378,50 @@ class EssentialsUtil extends Util
         $clock_out_time = is_object($data['clock_out_time']) ? $data['clock_out_time']->toDateTimeString() : $data['clock_out_time'];
 
         if (! empty($clock_in)) {
-            $can_clockout = $this->canClockOut($clock_in, $essentials_settings, $clock_out_time);
-            if (! $can_clockout) {
-                $output = ['success' => false,
-                    'msg' => __('essentials::lang.shift_not_over'),
+            $employee = User::find($data['user_id']);
+            if (empty($employee)) {
+                return [
+                    'success' => false,
+                    'msg' => __('messages.something_went_wrong'),
                     'type' => 'clock_out',
                 ];
-
-                return $output;
             }
+
+            $shift_row = Shift::find($clock_in->essentials_shift_id);
+
+            $allow_outside_geofence = ! empty($shift_row) && ! empty($shift_row->allow_clock_outside_geofence);
+
+            $geo_error = $this->validateApiClockOutGeofence(
+                (int) $data['business_id'],
+                $employee,
+                $data['latitude'] ?? null,
+                $data['longitude'] ?? null,
+                $data['clock_out_note'] ?? null,
+                $data['location_id'] ?? null,
+                $allow_outside_geofence
+            );
+
+            if ($geo_error !== null) {
+                return [
+                    'success' => false,
+                    'msg' => $geo_error['message'],
+                    'type' => 'clock_out',
+                ];
+            }
+
+            $checkout_policy = $this->evaluateClockOutPolicy($clock_in, $essentials_settings, $clock_out_time);
+
+            $clock_out_note_trimmed = isset($data['clock_out_note']) ? trim((string) $data['clock_out_note']) : '';
+
+            if ($checkout_policy['requires_early_note'] && $clock_out_note_trimmed === '') {
+                return [
+                    'success' => false,
+                    'msg' => __('essentials::lang.attendance_note_required_early_clock_out'),
+                    'type' => 'clock_out',
+                ];
+            }
+
+            unset($data['latitude'], $data['longitude'], $data['location_id']);
 
             $clock_in->clock_out_time = $data['clock_out_time'];
             $clock_in->clock_out_note = $data['clock_out_note'];
@@ -775,11 +896,12 @@ class EssentialsUtil extends Util
     }
 
     /**
-     * API clock-in: if branch has a geofence, position must be inside, unless a non-empty note is provided.
+     * API attendance geofence: coordinates required when branch geofence is active.
+     * Outside the zone requires a non-empty note unless the shift allows attendance outside the zone.
      *
      * @return array{message: string, code: string, status: int}|null
      */
-    public function validateApiClockInGeofence(int $businessId, User $user, $latitude, $longitude, $clockInNote, $locationId): ?array
+    protected function validateApiAttendanceGeofenceNotePolicy(int $businessId, User $user, $latitude, $longitude, $note, $locationId, bool $allowOutsideZoneWithoutNote): ?array
     {
         $hasExplicitLocation = $locationId !== null && $locationId !== '';
         $bl = $this->resolveClockInBusinessLocation($businessId, $locationId);
@@ -816,20 +938,32 @@ class EssentialsUtil extends Util
 
         $lat = (float) $latitude;
         $lng = (float) $longitude;
-        $note = is_string($clockInNote) ? trim($clockInNote) : (string) $clockInNote;
-        if ($note === '') {
-            $note = '';
-        }
+        $note_trimmed = is_string($note) ? trim($note) : trim((string) $note);
 
-        if (! $bl->isCoordinateInsideAttendanceGeofence($lat, $lng) && $note === '') {
-            return [
-                'message' => __('essentials::lang.outside_attendance_geofence'),
-                'code' => 'OUTSIDE_GEOFENCE',
-                'status' => 400,
-            ];
+        if (! $bl->isCoordinateInsideAttendanceGeofence($lat, $lng)) {
+            if ($allowOutsideZoneWithoutNote) {
+                return null;
+            }
+            if ($note_trimmed === '') {
+                return [
+                    'message' => __('essentials::lang.outside_attendance_geofence'),
+                    'code' => 'OUTSIDE_GEOFENCE',
+                    'status' => 400,
+                ];
+            }
         }
 
         return null;
+    }
+
+    public function validateApiClockInGeofence(int $businessId, User $user, $latitude, $longitude, $clockInNote, $locationId, bool $allowOutsideZoneWithoutNote = false): ?array
+    {
+        return $this->validateApiAttendanceGeofenceNotePolicy($businessId, $user, $latitude, $longitude, $clockInNote, $locationId, $allowOutsideZoneWithoutNote);
+    }
+
+    public function validateApiClockOutGeofence(int $businessId, User $user, $latitude, $longitude, $clockOutNote, $locationId, bool $allowOutsideZoneWithoutNote = false): ?array
+    {
+        return $this->validateApiAttendanceGeofenceNotePolicy($businessId, $user, $latitude, $longitude, $clockOutNote, $locationId, $allowOutsideZoneWithoutNote);
     }
 
     /**

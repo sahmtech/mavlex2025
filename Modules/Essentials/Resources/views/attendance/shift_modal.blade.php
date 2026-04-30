@@ -39,6 +39,13 @@
                 </label>
                 @show_tooltip(__('essentials::lang.allow_auto_clockout_tooltip'))
             </div>
+            <div class="form-group">
+                <label>
+                    {!! Form::checkbox('allow_clock_outside_geofence', 1, ! empty($shift) && ! empty($shift->allow_clock_outside_geofence), ['id' => 'allow_clock_outside_geofence']); !!}
+                    @lang('essentials::lang.allow_clock_outside_geofence')
+                </label>
+                @show_tooltip(__('essentials::lang.allow_clock_outside_geofence_tooltip'))
+            </div>
     		<div class="form-group enable_auto_clock_out_time" style="display: none;">
     			{!! Form::label('auto_clockout_time', __( 'essentials::lang.auto_clockout_time' ) . ':*') !!}
 	        	<div class="input-group date">

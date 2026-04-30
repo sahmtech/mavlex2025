@@ -191,32 +191,6 @@ class AttendanceController extends ApiController
             $settings = ! empty($settings) ? json_decode($settings, true) : [];
             $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil;
 
-            $geo = $essentialsUtil->validateApiClockInGeofence(
-                $business_id,
-                $user,
-                $request->input('latitude'),
-                $request->input('longitude'),
-                $request->input('clock_in_note'),
-                $request->input('location_id')
-            );
-            if ($geo !== null) {
-                return response()->json([
-                    'error' => [
-                        'message' => $geo['message'],
-                        'code' => $geo['code'],
-                    ],
-                ], (int) ($geo['status'] ?? 400));
-            }
-
-            $clockInGeofenceStatus = $essentialsUtil->getClockInGeofenceStatus(
-                $business_id,
-                $user,
-                $request->input('latitude'),
-                $request->input('longitude'),
-                $request->input('clock_in_note'),
-                $request->input('location_id')
-            );
-
             $data = [
                 'business_id' => $business_id,
                 // Match web attendance: clock-in for authenticated user unless explicitly overridden.
@@ -224,6 +198,9 @@ class AttendanceController extends ApiController
                 'clock_in_time' => empty($request->input('clock_in_time')) ? \Carbon::now() : $request->input('clock_in_time'),
                 'clock_in_note' => $request->input('clock_in_note'),
                 'ip_address' => $request->input('ip_address'),
+                'latitude' => $request->input('latitude'),
+                'longitude' => $request->input('longitude'),
+                'location_id' => $request->input('location_id'),
             ];
 
             if ($request->hasFile('clockin_image')) {
@@ -232,8 +209,6 @@ class AttendanceController extends ApiController
                     $data['clock_in_image'] = $path;
                 }
             }
-
-            $data['clock_in_geofence_status'] = $clockInGeofenceStatus;
 
             if (! empty($settings['is_location_required'])) {
                 $long = $request->input('longitude');
@@ -301,6 +276,9 @@ class AttendanceController extends ApiController
                 'clock_out_time' => empty($request->input('clock_out_time')) ? \Carbon::now() : $request->input('clock_out_time'),
                 // Support mobile payload key `clock_in_note` as an alias for clock_out_note.
                 'clock_out_note' => $request->input('clock_out_note', $request->input('clock_in_note')),
+                'latitude' => $request->input('latitude'),
+                'longitude' => $request->input('longitude'),
+                'location_id' => $request->input('location_id'),
             ];
 
             $essentialsUtil = new \Modules\Essentials\Utils\EssentialsUtil;
