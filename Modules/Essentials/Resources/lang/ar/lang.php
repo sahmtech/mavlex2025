@@ -84,6 +84,7 @@ return[
 "ip_address" => "عنوان IP",
 "clock_in_note" => "ملاحظة تسجيل الحضور",
 "clock_out_note" => "ملاحظة تسجيل خروج",
+"view_attendance_locations" => "عرض مواقع الحضور والانصراف",
 "clock_in" => "تسجيل الحضور",
 "clock_out" => "تسجيل انصراف",
 "clock_in_success" => "تم تسجيل الدخول بنجاح",

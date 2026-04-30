@@ -280,7 +280,7 @@
                     { data: 'user', name: 'user' },
                     { data: 'clock_in', name: 'clock_in', orderable: false, searchable: false},
                     { data: 'clock_out', name: 'clock_out', orderable: false, searchable: false},
-                    { data: 'locations', name: 'locations', orderable: false, searchable: false},
+                    { data: 'clock_in_location', name: 'clock_in_location', orderable: false, searchable: false},
                     { data: 'work_duration', name: 'work_duration', orderable: false, searchable: false},
                     { data: 'geofence_zone', name: 'geofence_zone', orderable: false, searchable: false},
                     { data: 'clock_in_note', name: 'clock_in_note', orderable: false, searchable: true},
