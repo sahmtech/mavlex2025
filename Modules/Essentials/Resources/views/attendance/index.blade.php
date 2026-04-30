@@ -517,10 +517,21 @@
                         attribution: '&copy; OpenStreetMap',
                     }).addTo(map);
 
-                    refreshAttendanceMapMarkers();
-                    setTimeout(function() {
+                    map.whenReady(function() {
                         map.invalidateSize();
-                    }, 280);
+                        refreshAttendanceMapMarkers();
+                        requestAnimationFrame(function() {
+                            map.invalidateSize();
+                            refreshAttendanceMapMarkers();
+                        });
+                        setTimeout(function() {
+                            map.invalidateSize();
+                            refreshAttendanceMapMarkers();
+                        }, 200);
+                        setTimeout(function() {
+                            map.invalidateSize();
+                        }, 550);
+                    });
                 });
             }
 
@@ -529,9 +540,18 @@
             });
 
             $('#attendance_locations_modal').on('shown.bs.modal', function() {
-                if (window._attendanceLocationsLeafletMap) {
-                    window._attendanceLocationsLeafletMap.invalidateSize();
+                if (typeof window._pendingAttendanceMapInit === 'function') {
+                    var fn = window._pendingAttendanceMapInit;
+                    window._pendingAttendanceMapInit = null;
+                    fn();
+                    return;
                 }
+                setTimeout(function() {
+                    if (window._attendanceLocationsLeafletMap) {
+                        window._attendanceLocationsLeafletMap.invalidateSize();
+                        refreshAttendanceMapMarkers();
+                    }
+                }, 80);
             });
 
             $('#attendance_locations_modal').on('hidden.bs.modal', function() {
@@ -540,6 +560,7 @@
                 $('#attendance_map_view_options').addClass('hide');
                 $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
                 window._attendanceLocPoints = null;
+                window._pendingAttendanceMapInit = null;
             });
 
             $(document).on('click', '.btn-attendance-locations', function() {
@@ -565,8 +586,10 @@
                 var inPt = pickLatLng($b.attr('data-clock-in-lat'), $b.attr('data-clock-in-lng'), inLoc);
                 var outPt = pickLatLng($b.attr('data-clock-out-lat'), $b.attr('data-clock-out-lng'), outLoc);
 
+                window._pendingAttendanceMapInit = function() {
+                    initAttendanceLocationsMap(inPt, outPt);
+                };
                 $('#attendance_locations_modal').modal('show');
-                initAttendanceLocationsMap(inPt, outPt);
             });
 
             $(document).on('submit', 'form#attendance_form', function(e) {
