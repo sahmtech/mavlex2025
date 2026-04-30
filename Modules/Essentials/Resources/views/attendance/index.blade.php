@@ -238,6 +238,20 @@
             <div class="modal-body">
                 <div id="attendance_locations_map_container" class="form-group hide">
                     <label>@lang('essentials::lang.attendance_locations_map')</label>
+                    <div id="attendance_map_view_options" class="hide" style="margin-bottom:10px;">
+                        <label class="radio-inline" style="margin-left:12px;">
+                            <input type="radio" name="attendance_map_view_mode" value="both" checked>
+                            @lang('essentials::lang.attendance_map_view_both')
+                        </label>
+                        <label class="radio-inline" style="margin-left:12px;">
+                            <input type="radio" name="attendance_map_view_mode" value="in">
+                            @lang('essentials::lang.attendance_map_view_clock_in_only')
+                        </label>
+                        <label class="radio-inline" style="margin-left:12px;">
+                            <input type="radio" name="attendance_map_view_mode" value="out">
+                            @lang('essentials::lang.attendance_map_view_clock_out_only')
+                        </label>
+                    </div>
                     <div style="margin-bottom:8px;font-size:12px;color:#555;">
                         <span style="display:inline-block;margin-left:14px;">
                             <span style="display:inline-block;vertical-align:middle;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);background:#22c55e;"></span>
@@ -376,66 +390,143 @@
                     window._attendanceLocationsLeafletMap.remove();
                     window._attendanceLocationsLeafletMap = null;
                 }
+                window._attendanceMarkersLayer = null;
                 var el = document.getElementById('attendance_locations_map');
                 if (el) {
                     el.innerHTML = '';
                 }
             }
 
-            function renderAttendanceLocationsMap(inPt, outPt) {
+            function getAttendanceMapViewMode() {
+                var pts = window._attendanceLocPoints;
+                if (!pts) {
+                    return 'both';
+                }
+                if (pts.in && !pts.out) {
+                    return 'in';
+                }
+                if (!pts.in && pts.out) {
+                    return 'out';
+                }
+                return $('input[name=attendance_map_view_mode]:checked').val() || 'both';
+            }
+
+            function configureAttendanceMapViewOptions() {
+                var pts = window._attendanceLocPoints;
+                var $opts = $('#attendance_map_view_options');
+                if (!pts || (!pts.in || !pts.out)) {
+                    $opts.addClass('hide');
+                    $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
+                    return;
+                }
+                $opts.removeClass('hide');
+                $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
+            }
+
+            function refreshAttendanceMapMarkers() {
+                var map = window._attendanceLocationsLeafletMap;
+                var layer = window._attendanceMarkersLayer;
+                var pts = window._attendanceLocPoints;
+                if (!map || !layer || !pts || typeof L === 'undefined') {
+                    return;
+                }
+
+                layer.clearLayers();
+
+                var iconIn = L.divIcon({
+                    className: 'attendance-loc-marker-in',
+                    html: '<div style="width:24px;height:24px;background:#22c55e;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
+                });
+                var iconOut = L.divIcon({
+                    className: 'attendance-loc-marker-out',
+                    html: '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12],
+                });
+
+                var mode = getAttendanceMapViewMode();
+                var showList = [];
+                if (mode === 'both') {
+                    if (pts.in) {
+                        showList.push({ll: pts.in, ic: iconIn});
+                    }
+                    if (pts.out) {
+                        showList.push({ll: pts.out, ic: iconOut});
+                    }
+                } else if (mode === 'in' && pts.in) {
+                    showList.push({ll: pts.in, ic: iconIn});
+                } else if (mode === 'out' && pts.out) {
+                    showList.push({ll: pts.out, ic: iconOut});
+                }
+
+                var latLngs = [];
+                for (var i = 0; i < showList.length; i++) {
+                    L.marker(showList[i].ll, {icon: showList[i].ic}).addTo(layer);
+                    latLngs.push(showList[i].ll);
+                }
+
+                if (latLngs.length === 1) {
+                    if (typeof map.flyTo === 'function') {
+                        map.flyTo(latLngs[0], 17, {duration: 0.45});
+                    } else {
+                        map.setView(latLngs[0], 17);
+                    }
+                } else if (latLngs.length > 1) {
+                    var b = L.latLngBounds(latLngs);
+                    if (typeof map.flyToBounds === 'function') {
+                        map.flyToBounds(b, {padding: [48, 48], maxZoom: 17, duration: 0.45});
+                    } else {
+                        map.fitBounds(b, {padding: [48, 48], maxZoom: 17});
+                    }
+                }
+
+                setTimeout(function() {
+                    map.invalidateSize();
+                }, 450);
+            }
+
+            function initAttendanceLocationsMap(inPt, outPt) {
+                window._attendanceLocPoints = {
+                    in: inPt || null,
+                    out: outPt || null,
+                };
+
                 destroyAttendanceLocationsMap();
-                var pts = [];
-                if (inPt) {
-                    pts.push({ll: inPt, t: 'in'});
-                }
-                if (outPt) {
-                    pts.push({ll: outPt, t: 'out'});
-                }
-                if (!pts.length) {
+
+                var pts = window._attendanceLocPoints;
+                if (!pts.in && !pts.out) {
                     $('#attendance_locations_map_container').addClass('hide');
                     return;
                 }
+
                 $('#attendance_locations_map_container').removeClass('hide');
+                configureAttendanceMapViewOptions();
+
                 loadLeafletForAttendanceMap(function() {
                     if (typeof L === 'undefined') {
                         return;
                     }
                     var map = L.map('attendance_locations_map', {scrollWheelZoom: true});
                     window._attendanceLocationsLeafletMap = map;
+                    window._attendanceMarkersLayer = L.layerGroup().addTo(map);
+
                     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '&copy; OpenStreetMap',
                     }).addTo(map);
 
-                    var iconIn = L.divIcon({
-                        className: 'attendance-loc-marker-in',
-                        html: '<div style="width:24px;height:24px;background:#22c55e;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12],
-                    });
-                    var iconOut = L.divIcon({
-                        className: 'attendance-loc-marker-out',
-                        html: '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
-                        iconSize: [24, 24],
-                        iconAnchor: [12, 12],
-                    });
-
-                    var latLngs = [];
-                    for (var i = 0; i < pts.length; i++) {
-                        var ic = pts[i].t === 'in' ? iconIn : iconOut;
-                        L.marker(pts[i].ll, {icon: ic}).addTo(map);
-                        latLngs.push(pts[i].ll);
-                    }
-                    if (latLngs.length === 1) {
-                        map.setView(latLngs[0], 16);
-                    } else {
-                        map.fitBounds(L.latLngBounds(latLngs), {padding: [48, 48], maxZoom: 17});
-                    }
+                    refreshAttendanceMapMarkers();
                     setTimeout(function() {
                         map.invalidateSize();
-                    }, 300);
+                    }, 280);
                 });
             }
+
+            $(document).on('change', 'input[name=attendance_map_view_mode]', function() {
+                refreshAttendanceMapMarkers();
+            });
 
             $('#attendance_locations_modal').on('shown.bs.modal', function() {
                 if (window._attendanceLocationsLeafletMap) {
@@ -446,6 +537,9 @@
             $('#attendance_locations_modal').on('hidden.bs.modal', function() {
                 destroyAttendanceLocationsMap();
                 $('#attendance_locations_map_container').addClass('hide');
+                $('#attendance_map_view_options').addClass('hide');
+                $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
+                window._attendanceLocPoints = null;
             });
 
             $(document).on('click', '.btn-attendance-locations', function() {
@@ -472,7 +566,7 @@
                 var outPt = pickLatLng($b.attr('data-clock-out-lat'), $b.attr('data-clock-out-lng'), outLoc);
 
                 $('#attendance_locations_modal').modal('show');
-                renderAttendanceLocationsMap(inPt, outPt);
+                initAttendanceLocationsMap(inPt, outPt);
             });
 
             $(document).on('submit', 'form#attendance_form', function(e) {
