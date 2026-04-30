@@ -165,6 +165,7 @@
                                         <th>@lang('essentials::lang.employee')</th>
                                         <th>@lang('essentials::lang.clock_in')</th>
                                         <th>@lang('essentials::lang.clock_out')</th>
+                                        <th>@lang('essentials::lang.clock_in_location')</th>
                                         <th>@lang('essentials::lang.work_duration')</th>
                                         <th>@lang('essentials::lang.attendance_geofence_zone')</th>
                                         <th>@lang('essentials::lang.clock_in_note')</th>
@@ -225,6 +226,31 @@
         aria-labelledby="gridSystemModalLabel">
     @include('essentials::attendance.shift_modal')
 </div>
+<div class="modal fade" id="attendance_locations_modal" tabindex="-1" role="dialog" aria-labelledby="attendanceLocationsLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="attendanceLocationsLabel">@lang('essentials::lang.attendance')</h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>@lang('essentials::lang.clock_in_location')</label>
+                    <div class="well well-sm" id="attendance_clock_in_location_text"></div>
+                </div>
+                <div class="form-group">
+                    <label>@lang('essentials::lang.clock_out_location')</label>
+                    <div class="well well-sm" id="attendance_clock_out_location_text"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="tw-dw-btn tw-dw-btn-neutral tw-text-white" data-dismiss="modal">@lang('messages.close')</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @endsection
 
@@ -254,6 +280,7 @@
                     { data: 'user', name: 'user' },
                     { data: 'clock_in', name: 'clock_in', orderable: false, searchable: false},
                     { data: 'clock_out', name: 'clock_out', orderable: false, searchable: false},
+                    { data: 'locations', name: 'locations', orderable: false, searchable: false},
                     { data: 'work_duration', name: 'work_duration', orderable: false, searchable: false},
                     { data: 'geofence_zone', name: 'geofence_zone', orderable: false, searchable: false},
                     { data: 'clock_in_note', name: 'clock_in_note', orderable: false, searchable: true},
@@ -278,6 +305,14 @@
 
             $(document).on('change', '#employee_id, #date_range', function() {
                 attendance_table.ajax.reload();
+            });
+
+            $(document).on('click', '.btn-attendance-locations', function() {
+                var inLoc = $(this).data('clock-in-location') || '';
+                var outLoc = $(this).data('clock-out-location') || '';
+                $('#attendance_clock_in_location_text').text(inLoc ? inLoc : "{{__('lang_v1.none')}}");
+                $('#attendance_clock_out_location_text').text(outLoc ? outLoc : "{{__('lang_v1.none')}}");
+                $('#attendance_locations_modal').modal('show');
             });
 
             $(document).on('submit', 'form#attendance_form', function(e) {
