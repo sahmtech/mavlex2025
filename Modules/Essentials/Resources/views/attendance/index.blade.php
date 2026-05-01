@@ -415,9 +415,6 @@
                 var zoom = 17;
                 var lat;
                 var lng;
-                /** Matches legend dots: clock-in green, clock-out red */
-                var markerInColor = '0x22c55e';
-                var markerOutColor = '0xef4444';
 
                 if (mode === 'in' && latIn !== null && lngIn !== null) {
                     lat = latIn;
@@ -446,26 +443,26 @@
                     lng = lngOut;
                 }
 
-                var qs = [];
-                qs.push('ll=' + encodeURIComponent(lat + ',' + lng));
-                qs.push('z=' + zoom);
-                qs.push('hl=ar');
-                qs.push('output=embed');
-
-                if (mode === 'both' && latIn !== null && lngIn !== null && latOut !== null && lngOut !== null) {
-                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
-                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
-                } else if (mode === 'in' && latIn !== null && lngIn !== null) {
-                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
-                } else if (mode === 'out' && latOut !== null && lngOut !== null) {
-                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
-                } else if (latIn !== null && lngIn !== null) {
-                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
-                } else if (latOut !== null && lngOut !== null) {
-                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
+                /**
+                 * Classic embed reliably shows a pin only with q=lat,lng (markers=/ll= often yield a blank map).
+                 * Two distinct endpoints: directions embed (saddr→daddr) shows two pins (start vs end).
+                 */
+                function embedPlace(lat0, lng0, z) {
+                    return 'https://maps.google.com/maps?q=' + encodeURIComponent(lat0 + ',' + lng0)
+                        + '&z=' + z + '&output=embed&hl=ar';
                 }
 
-                iframe.src = 'https://maps.google.com/maps?' + qs.join('&');
+                var sameSpot = latIn !== null && lngIn !== null && latOut !== null && lngOut !== null
+                    && Math.abs(latIn - latOut) < 1e-7 && Math.abs(lngIn - lngOut) < 1e-7;
+
+                if (mode === 'both' && latIn !== null && lngIn !== null && latOut !== null && lngOut !== null && !sameSpot) {
+                    iframe.src = 'https://maps.google.com/maps?saddr=' + encodeURIComponent(latIn + ',' + lngIn)
+                        + '&daddr=' + encodeURIComponent(latOut + ',' + lngOut)
+                        + '&hl=ar&output=embed';
+                    return;
+                }
+
+                iframe.src = embedPlace(lat, lng, zoom);
             }
 
             function initAttendanceLocationsMap(inPt, outPt) {
