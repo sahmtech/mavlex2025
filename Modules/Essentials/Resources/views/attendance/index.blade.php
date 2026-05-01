@@ -262,7 +262,14 @@
                             @lang('essentials::lang.clock_out')
                         </span>
                     </div>
-                    <div id="attendance_locations_map" style="height:320px;width:100%;border-radius:8px;border:1px solid #ddd;"></div>
+                    {{-- Embedded map (Google): avoids Leaflet tile requests which are often blocked by networks/CSP --}}
+                    <iframe id="attendance_locations_iframe"
+                        title="{{ __('essentials::lang.attendance_locations_map') }}"
+                        src="about:blank"
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                        allowfullscreen
+                        style="display:block;height:320px;width:100%;border-radius:8px;border:1px solid #ddd;background:#f2f2f2;"></iframe>
                 </div>
                 <div class="form-group">
                     <label>@lang('essentials::lang.clock_in_location')</label>
@@ -335,40 +342,6 @@
                 attendance_table.ajax.reload();
             });
 
-            function loadLeafletForAttendanceMap(callback) {
-                if (window.L && typeof L.map === 'function') {
-                    callback();
-                    return;
-                }
-                window._leafletAttendanceCallbacks = window._leafletAttendanceCallbacks || [];
-                window._leafletAttendanceCallbacks.push(callback);
-                if (window._leafletAttendanceScriptLoading) {
-                    return;
-                }
-                window._leafletAttendanceScriptLoading = true;
-                if (!document.querySelector('link[href*="leaflet.css"]')) {
-                    var link = document.createElement('link');
-                    link.rel = 'stylesheet';
-                    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-                    document.head.appendChild(link);
-                }
-                var s = document.createElement('script');
-                s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-                s.onload = function() {
-                    window._leafletAttendanceScriptLoading = false;
-                    var cbs = window._leafletAttendanceCallbacks || [];
-                    window._leafletAttendanceCallbacks = [];
-                    for (var i = 0; i < cbs.length; i++) {
-                        cbs[i]();
-                    }
-                };
-                s.onerror = function() {
-                    window._leafletAttendanceScriptLoading = false;
-                    window._leafletAttendanceCallbacks = [];
-                };
-                document.head.appendChild(s);
-            }
-
             function parseCoordsFromLocationText(txt) {
                 if (!txt || typeof txt !== 'string') {
                     return null;
@@ -385,15 +358,10 @@
                 return {lat: lat, lng: lng};
             }
 
-            function destroyAttendanceLocationsMap() {
-                if (window._attendanceLocationsLeafletMap) {
-                    window._attendanceLocationsLeafletMap.remove();
-                    window._attendanceLocationsLeafletMap = null;
-                }
-                window._attendanceMarkersLayer = null;
-                var el = document.getElementById('attendance_locations_map');
-                if (el) {
-                    el.innerHTML = '';
+            function resetAttendanceLocationsMapView() {
+                var iframe = document.getElementById('attendance_locations_iframe');
+                if (iframe) {
+                    iframe.src = 'about:blank';
                 }
             }
 
@@ -423,68 +391,61 @@
                 $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
             }
 
-            function refreshAttendanceMapMarkers() {
-                var map = window._attendanceLocationsLeafletMap;
-                var layer = window._attendanceMarkersLayer;
+            /**
+             * Google Maps embed inside iframe (no Leaflet tile downloads — works when tile CDNs are blocked).
+             */
+            function refreshAttendanceMapEmbed() {
                 var pts = window._attendanceLocPoints;
-                if (!map || !layer || !pts || typeof L === 'undefined') {
+                var iframe = document.getElementById('attendance_locations_iframe');
+                if (!iframe) {
                     return;
                 }
 
-                layer.clearLayers();
-
-                var iconIn = L.divIcon({
-                    className: 'attendance-loc-marker-in',
-                    html: '<div style="width:24px;height:24px;background:#22c55e;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                });
-                var iconOut = L.divIcon({
-                    className: 'attendance-loc-marker-out',
-                    html: '<div style="width:24px;height:24px;background:#ef4444;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(0,0,0,.4);"></div>',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                });
+                if (!pts || (!pts.in && !pts.out)) {
+                    iframe.src = 'about:blank';
+                    return;
+                }
 
                 var mode = getAttendanceMapViewMode();
-                var showList = [];
-                if (mode === 'both') {
-                    if (pts.in) {
-                        showList.push({ll: pts.in, ic: iconIn});
-                    }
-                    if (pts.out) {
-                        showList.push({ll: pts.out, ic: iconOut});
-                    }
-                } else if (mode === 'in' && pts.in) {
-                    showList.push({ll: pts.in, ic: iconIn});
-                } else if (mode === 'out' && pts.out) {
-                    showList.push({ll: pts.out, ic: iconOut});
-                }
+                var latIn = pts.in ? pts.in[0] : null;
+                var lngIn = pts.in ? pts.in[1] : null;
+                var latOut = pts.out ? pts.out[0] : null;
+                var lngOut = pts.out ? pts.out[1] : null;
 
-                var latLngs = [];
-                for (var i = 0; i < showList.length; i++) {
-                    L.marker(showList[i].ll, {icon: showList[i].ic}).addTo(layer);
-                    latLngs.push(showList[i].ll);
-                }
+                var zoom = 17;
+                var lat;
+                var lng;
 
-                if (latLngs.length === 1) {
-                    if (typeof map.flyTo === 'function') {
-                        map.flyTo(latLngs[0], 17, {duration: 0.45});
+                if (mode === 'in' && latIn !== null && lngIn !== null) {
+                    lat = latIn;
+                    lng = lngIn;
+                } else if (mode === 'out' && latOut !== null && lngOut !== null) {
+                    lat = latOut;
+                    lng = lngOut;
+                } else if (latIn !== null && lngIn !== null && latOut !== null && lngOut !== null) {
+                    lat = (latIn + latOut) / 2;
+                    lng = (lngIn + lngOut) / 2;
+                    var span = Math.max(Math.abs(latIn - latOut), Math.abs(lngIn - lngOut));
+                    if (span > 0.08) {
+                        zoom = 12;
+                    } else if (span > 0.03) {
+                        zoom = 14;
+                    } else if (span > 0.005) {
+                        zoom = 16;
                     } else {
-                        map.setView(latLngs[0], 17);
+                        zoom = 17;
                     }
-                } else if (latLngs.length > 1) {
-                    var b = L.latLngBounds(latLngs);
-                    if (typeof map.flyToBounds === 'function') {
-                        map.flyToBounds(b, {padding: [48, 48], maxZoom: 17, duration: 0.45});
-                    } else {
-                        map.fitBounds(b, {padding: [48, 48], maxZoom: 17});
-                    }
+                } else if (latIn !== null && lngIn !== null) {
+                    lat = latIn;
+                    lng = lngIn;
+                } else {
+                    lat = latOut;
+                    lng = lngOut;
                 }
 
-                setTimeout(function() {
-                    map.invalidateSize();
-                }, 450);
+                var src = 'https://maps.google.com/maps?q=' + encodeURIComponent(lat + ',' + lng)
+                    + '&z=' + zoom + '&output=embed&hl=ar';
+                iframe.src = src;
             }
 
             function initAttendanceLocationsMap(inPt, outPt) {
@@ -493,7 +454,7 @@
                     out: outPt || null,
                 };
 
-                destroyAttendanceLocationsMap();
+                resetAttendanceLocationsMapView();
 
                 var pts = window._attendanceLocPoints;
                 if (!pts.in && !pts.out) {
@@ -503,71 +464,11 @@
 
                 $('#attendance_locations_map_container').removeClass('hide');
                 configureAttendanceMapViewOptions();
-
-                loadLeafletForAttendanceMap(function() {
-                    if (typeof L === 'undefined') {
-                        return;
-                    }
-                    var map = L.map('attendance_locations_map', {
-                        scrollWheelZoom: true,
-                        zoomControl: true,
-                    });
-                    window._attendanceLocationsLeafletMap = map;
-                    window._attendanceMarkersLayer = L.layerGroup().addTo(map);
-
-                    /**
-                     * OSM subdomain tiles often fail (policy / blocking). Esri + Carto fallback loads reliably in browsers.
-                     */
-                    function attachAttendanceBasemap() {
-                        map._attendanceBasemapFallbackDone = false;
-                        var esriFails = 0;
-                        var esri = L.tileLayer(
-                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-                            {
-                                maxZoom: 19,
-                                attribution: '&copy; Esri &mdash; Sources: Esri, Garmin, OpenStreetMap',
-                            }
-                        );
-                        var carto = L.tileLayer(
-                            'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
-                            {
-                                maxZoom: 19,
-                                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-                            }
-                        );
-                        esri.addTo(map);
-                        esri.on('tileerror', function() {
-                            esriFails++;
-                            if (map._attendanceBasemapFallbackDone || esriFails < 4) {
-                                return;
-                            }
-                            map._attendanceBasemapFallbackDone = true;
-                            map.removeLayer(esri);
-                            carto.addTo(map);
-                        });
-                    }
-                    attachAttendanceBasemap();
-
-                    map.whenReady(function() {
-                        map.invalidateSize();
-                        refreshAttendanceMapMarkers();
-                        requestAnimationFrame(function() {
-                            map.invalidateSize();
-                            refreshAttendanceMapMarkers();
-                        });
-                        setTimeout(function() {
-                            map.invalidateSize();
-                            refreshAttendanceMapMarkers();
-                        }, 200);
-                        setTimeout(function() {
-                            map.invalidateSize();
-                        }, 550);
-                    });
-                });
+                refreshAttendanceMapEmbed();
             }
 
             $(document).on('change', 'input[name=attendance_map_view_mode]', function() {
-                refreshAttendanceMapMarkers();
+                refreshAttendanceMapEmbed();
             });
 
             $('#attendance_locations_modal').on('shown.bs.modal', function() {
@@ -578,15 +479,12 @@
                     return;
                 }
                 setTimeout(function() {
-                    if (window._attendanceLocationsLeafletMap) {
-                        window._attendanceLocationsLeafletMap.invalidateSize();
-                        refreshAttendanceMapMarkers();
-                    }
+                    refreshAttendanceMapEmbed();
                 }, 80);
             });
 
             $('#attendance_locations_modal').on('hidden.bs.modal', function() {
-                destroyAttendanceLocationsMap();
+                resetAttendanceLocationsMapView();
                 $('#attendance_locations_map_container').addClass('hide');
                 $('#attendance_map_view_options').addClass('hide');
                 $('input[name=attendance_map_view_mode][value=both]').prop('checked', true);
