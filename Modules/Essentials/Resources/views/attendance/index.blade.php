@@ -444,12 +444,16 @@
                 }
 
                 /**
-                 * Classic embed reliably shows a pin only with q=lat,lng (markers=/ll= often yield a blank map).
-                 * Two distinct endpoints: directions embed (saddr→daddr) shows two pins (start vs end).
+                 * Classic embed: keep q= center+zoom (required). Optional markers=color:|lat,lng for tinted pin.
+                 * Avoid ll= — often blanks embed. Two endpoints: directions (saddr→daddr).
                  */
-                function embedPlace(lat0, lng0, z) {
-                    return 'https://maps.google.com/maps?q=' + encodeURIComponent(lat0 + ',' + lng0)
+                function embedPlace(lat0, lng0, z, markerHex) {
+                    var base = 'https://maps.google.com/maps?q=' + encodeURIComponent(lat0 + ',' + lng0)
                         + '&z=' + z + '&output=embed&hl=ar';
+                    if (markerHex) {
+                        base += '&markers=color:' + markerHex + '|' + lat0 + ',' + lng0;
+                    }
+                    return base;
                 }
 
                 var sameSpot = latIn !== null && lngIn !== null && latOut !== null && lngOut !== null
@@ -462,7 +466,18 @@
                     return;
                 }
 
-                iframe.src = embedPlace(lat, lng, zoom);
+                /** Legend clock-in green #22c55e — tint embed pin when map shows حضور location only */
+                var clockInGreenHex = '0x22c55e';
+                var pinTint = null;
+                if (mode === 'in') {
+                    pinTint = clockInGreenHex;
+                } else if (sameSpot) {
+                    pinTint = clockInGreenHex;
+                } else if (latIn !== null && lngIn !== null && (latOut === null || lngOut === null)) {
+                    pinTint = clockInGreenHex;
+                }
+
+                iframe.src = embedPlace(lat, lng, zoom, pinTint);
             }
 
             function initAttendanceLocationsMap(inPt, outPt) {
