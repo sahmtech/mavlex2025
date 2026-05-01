@@ -415,6 +415,9 @@
                 var zoom = 17;
                 var lat;
                 var lng;
+                /** Matches legend dots: clock-in green, clock-out red */
+                var markerInColor = '0x22c55e';
+                var markerOutColor = '0xef4444';
 
                 if (mode === 'in' && latIn !== null && lngIn !== null) {
                     lat = latIn;
@@ -443,9 +446,26 @@
                     lng = lngOut;
                 }
 
-                var src = 'https://maps.google.com/maps?q=' + encodeURIComponent(lat + ',' + lng)
-                    + '&z=' + zoom + '&output=embed&hl=ar';
-                iframe.src = src;
+                var qs = [];
+                qs.push('ll=' + encodeURIComponent(lat + ',' + lng));
+                qs.push('z=' + zoom);
+                qs.push('hl=ar');
+                qs.push('output=embed');
+
+                if (mode === 'both' && latIn !== null && lngIn !== null && latOut !== null && lngOut !== null) {
+                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
+                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
+                } else if (mode === 'in' && latIn !== null && lngIn !== null) {
+                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
+                } else if (mode === 'out' && latOut !== null && lngOut !== null) {
+                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
+                } else if (latIn !== null && lngIn !== null) {
+                    qs.push('markers=color:' + markerInColor + '|label:I|' + latIn + ',' + lngIn);
+                } else if (latOut !== null && lngOut !== null) {
+                    qs.push('markers=color:' + markerOutColor + '|label:O|' + latOut + ',' + lngOut);
+                }
+
+                iframe.src = 'https://maps.google.com/maps?' + qs.join('&');
             }
 
             function initAttendanceLocationsMap(inPt, outPt) {
