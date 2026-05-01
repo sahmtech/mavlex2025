@@ -508,14 +508,45 @@
                     if (typeof L === 'undefined') {
                         return;
                     }
-                    var map = L.map('attendance_locations_map', {scrollWheelZoom: true});
+                    var map = L.map('attendance_locations_map', {
+                        scrollWheelZoom: true,
+                        zoomControl: true,
+                    });
                     window._attendanceLocationsLeafletMap = map;
                     window._attendanceMarkersLayer = L.layerGroup().addTo(map);
 
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                        maxZoom: 19,
-                        attribution: '&copy; OpenStreetMap',
-                    }).addTo(map);
+                    /**
+                     * OSM subdomain tiles often fail (policy / blocking). Esri + Carto fallback loads reliably in browsers.
+                     */
+                    function attachAttendanceBasemap() {
+                        map._attendanceBasemapFallbackDone = false;
+                        var esriFails = 0;
+                        var esri = L.tileLayer(
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+                            {
+                                maxZoom: 19,
+                                attribution: '&copy; Esri &mdash; Sources: Esri, Garmin, OpenStreetMap',
+                            }
+                        );
+                        var carto = L.tileLayer(
+                            'https://cartodb-basemaps-a.global.ssl.fastly.net/light_all/{z}/{x}/{y}.png',
+                            {
+                                maxZoom: 19,
+                                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                            }
+                        );
+                        esri.addTo(map);
+                        esri.on('tileerror', function() {
+                            esriFails++;
+                            if (map._attendanceBasemapFallbackDone || esriFails < 4) {
+                                return;
+                            }
+                            map._attendanceBasemapFallbackDone = true;
+                            map.removeLayer(esri);
+                            carto.addTo(map);
+                        });
+                    }
+                    attachAttendanceBasemap();
 
                     map.whenReady(function() {
                         map.invalidateSize();
