@@ -899,15 +899,16 @@ class EssentialsUtil extends Util
     /**
      * Branch whose attendance zone is used to evaluate API-submitted coordinates.
      * Explicit location_id uses that branch when it has an active geofence; otherwise geofence is skipped for this request.
-     * Without location_id: if exactly one permitted branch has an active geofence, use it; if several do, caller must send location_id.
+     * Without location_id: sole permitted geofenced branch is used; if several exist, coordinates are tested against every permitted zone (inside any passes).
      *
      * @param  int|string|null  $locationId
-     * @return array{business_location: ?BusinessLocation, error: ?array{message: string, code: string, status: int}}
+     * @return array{business_location: ?BusinessLocation, error: ?array{message: string, code: string, status: int}, implicit_multi_candidates: ?\Illuminate\Support\Collection<int, BusinessLocation>}
      */
     protected function resolveBusinessLocationForApiGeofence(int $businessId, User $user, $locationId): array
     {
         $hasExplicitLocation = $locationId !== null && $locationId !== '';
         $permitted = $user->permitted_locations($businessId);
+        $emptyImplicit = ['business_location' => null, 'error' => null, 'implicit_multi_candidates' => null];
 
         if ($hasExplicitLocation) {
             $bl = BusinessLocation::where('business_id', $businessId)->where('id', (int) $locationId)->first();
@@ -919,6 +920,7 @@ class EssentialsUtil extends Util
                         'code' => 'BUSINESS_LOCATION_NOT_FOUND',
                         'status' => 404,
                     ],
+                    'implicit_multi_candidates' => null,
                 ];
             }
             if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
@@ -929,13 +931,14 @@ class EssentialsUtil extends Util
                         'code' => 'BUSINESS_LOCATION_NOT_PERMITTED',
                         'status' => 403,
                     ],
+                    'implicit_multi_candidates' => null,
                 ];
             }
             if (! $bl->hasActiveAttendanceGeofence()) {
-                return ['business_location' => null, 'error' => null];
+                return $emptyImplicit;
             }
 
-            return ['business_location' => $bl, 'error' => null];
+            return ['business_location' => $bl, 'error' => null, 'implicit_multi_candidates' => null];
         }
 
         $candidates = BusinessLocation::where('business_id', $businessId)
@@ -950,21 +953,18 @@ class EssentialsUtil extends Util
             ->values();
 
         if ($candidates->isEmpty()) {
-            return ['business_location' => null, 'error' => null];
+            return $emptyImplicit;
         }
 
         if ($candidates->count() > 1) {
             return [
                 'business_location' => null,
-                'error' => [
-                    'message' => __('essentials::lang.attendance_geofence_location_id_required'),
-                    'code' => 'LOCATION_ID_REQUIRED_FOR_GEOFENCE',
-                    'status' => 422,
-                ],
+                'error' => null,
+                'implicit_multi_candidates' => $candidates,
             ];
         }
 
-        return ['business_location' => $candidates->first(), 'error' => null];
+        return ['business_location' => $candidates->first(), 'error' => null, 'implicit_multi_candidates' => null];
     }
 
     /**
@@ -978,6 +978,41 @@ class EssentialsUtil extends Util
         $resolved = $this->resolveBusinessLocationForApiGeofence($businessId, $user, $locationId);
         if ($resolved['error'] !== null) {
             return $resolved['error'];
+        }
+
+        $implicitMulti = $resolved['implicit_multi_candidates'] ?? null;
+        if ($implicitMulti !== null && $implicitMulti->isNotEmpty()) {
+            if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
+                return [
+                    'message' => __('essentials::lang.attendance_geofence_coordinates_required'),
+                    'code' => 'GEOFENCE_COORDINATES_REQUIRED',
+                    'status' => 400,
+                ];
+            }
+
+            $lat = (float) $latitude;
+            $lng = (float) $longitude;
+            $insideAny = $implicitMulti->filter(function (BusinessLocation $loc) use ($lat, $lng) {
+                return $loc->isCoordinateInsideAttendanceGeofence($lat, $lng);
+            })->isNotEmpty();
+
+            if ($insideAny) {
+                return null;
+            }
+
+            $note_trimmed = is_string($note) ? trim($note) : trim((string) $note);
+            if ($allowOutsideZoneWithoutNote) {
+                return null;
+            }
+            if ($note_trimmed === '') {
+                return [
+                    'message' => __('essentials::lang.outside_attendance_geofence'),
+                    'code' => 'OUTSIDE_GEOFENCE',
+                    'status' => 400,
+                ];
+            }
+
+            return null;
         }
 
         $bl = $resolved['business_location'];
@@ -1031,7 +1066,25 @@ class EssentialsUtil extends Util
     public function getClockInGeofenceStatus(int $businessId, \App\User $user, $latitude, $longitude, $clockInNote, $locationId): string
     {
         $resolved = $this->resolveBusinessLocationForApiGeofence($businessId, $user, $locationId);
-        if ($resolved['error'] !== null || $resolved['business_location'] === null) {
+        if ($resolved['error'] !== null) {
+            return 'na';
+        }
+
+        $implicitMulti = $resolved['implicit_multi_candidates'] ?? null;
+        if ($implicitMulti !== null && $implicitMulti->isNotEmpty()) {
+            if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
+                return 'na';
+            }
+            $lat = (float) $latitude;
+            $lng = (float) $longitude;
+            $insideAny = $implicitMulti->filter(function (BusinessLocation $loc) use ($lat, $lng) {
+                return $loc->isCoordinateInsideAttendanceGeofence($lat, $lng);
+            })->isNotEmpty();
+
+            return $insideAny ? 'inside' : 'outside';
+        }
+
+        if ($resolved['business_location'] === null) {
             return 'na';
         }
 

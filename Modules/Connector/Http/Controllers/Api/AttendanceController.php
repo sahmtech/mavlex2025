@@ -168,7 +168,7 @@ class AttendanceController extends ApiController
      * @bodyParam ip_address string IP address.
      * @bodyParam latitude string Latitude of the clock in location.
      * @bodyParam longitude string Longitude of the clock in location.
-     * @bodyParam location_id integer optional Branch id whose attendance zone is used to validate latitude/longitude. Required when more than one permitted branch has an active geofence; otherwise the sole geofenced branch is used automatically.
+     * @bodyParam location_id integer optional Branch id whose attendance zone is used to validate latitude/longitude. When omitted with multiple geofenced branches, the server accepts the request if coordinates fall inside any permitted branch zone.
      * @bodyParam clockin_image file optional Image file (e.g. selfie / proof).
      *
      * @response {
