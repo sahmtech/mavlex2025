@@ -101,6 +101,7 @@ return [
     'attendance_note_required_late_clock_in' => 'You clocked in after the allowed grace window for this shift. A clock-in note is required.',
     'attendance_note_required_early_clock_out' => 'You clocked out before the allowed checkout window for this shift. A clock-out note is required.',
     'attendance_geofence_coordinates_required' => 'Latitude and longitude are required to verify the attendance zone for this branch.',
+    'attendance_geofence_location_id_required' => 'More than one branch has an attendance zone. Send location_id (branch id) with latitude and longitude so the server can check your coordinates against the correct zone.',
     'business_location_not_found' => 'The selected business location (branch) was not found.',
     'business_location_not_permitted' => 'You are not allowed to use this business location for attendance.',
     'attendance_geofence_zone' => 'Attendance zone',

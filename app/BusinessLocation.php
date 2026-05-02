@@ -26,6 +26,28 @@ class BusinessLocation extends Model
     ];
 
     /**
+     * True when any branch the user may access has an active attendance geofence (GPS required to enforce zone + note rules).
+     */
+    public static function userMustProvideCoordinatesForAttendanceGeofence(User $user): bool
+    {
+        $businessId = (int) $user->business_id;
+        $permitted = $user->permitted_locations($businessId);
+
+        foreach (self::where('business_id', $businessId)->get() as $loc) {
+            if (! $loc->hasActiveAttendanceGeofence()) {
+                continue;
+            }
+            if ($permitted !== 'all' && ! in_array($loc->id, $permitted, true)) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Whether this location has a configured clock-in geofence (polygon or legacy circle).
      */
     public function hasActiveAttendanceGeofence(): bool

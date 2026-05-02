@@ -168,7 +168,7 @@ class AttendanceController extends ApiController
      * @bodyParam ip_address string IP address.
      * @bodyParam latitude string Latitude of the clock in location.
      * @bodyParam longitude string Longitude of the clock in location.
-     * @bodyParam location_id integer optional Branch id for geofence; defaults to first location.
+     * @bodyParam location_id integer optional Branch id whose attendance zone is used to validate latitude/longitude. Required when more than one permitted branch has an active geofence; otherwise the sole geofenced branch is used automatically.
      * @bodyParam clockin_image file optional Image file (e.g. selfie / proof).
      *
      * @response {
@@ -251,8 +251,9 @@ class AttendanceController extends ApiController
      * @bodyParam user_id integer required id of the user Example: 1
      * @bodyParam clock_out_time string Clock out time.If not given current date time will be used Fromat: Y-m-d H:i:s Example:2000-06-13 13:13:00
      * @bodyParam clock_out_note string Clock out note.
-     * @bodyParam latitude string Latitude of the clock out location.
+     * @bodyParam latitude string Latitude of the clock out location (validated against branch geofence when active).
      * @bodyParam longitude string Longitude of the clock out location.
+     * @bodyParam location_id integer optional Branch id for geofence validation (same rules as clock-in).
      *
      * @response {
          "success":true,

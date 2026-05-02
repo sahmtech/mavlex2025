@@ -2,6 +2,7 @@
 
 namespace Modules\Essentials\Http\Controllers;
 
+use App\BusinessLocation;
 use App\User;
 use App\Utils\ModuleUtil;
 use DB;
@@ -408,10 +409,22 @@ class AttendanceController extends Controller
             return ['success' => false,
                 'msg' => __('essentials::lang.not_allowed'),
             ];
-        } elseif ((! empty($settings['is_location_required']) && $settings['is_location_required']) && empty($request->input('clock_in_out_location'))) {
+        }
+        if ((! empty($settings['is_location_required']) && $settings['is_location_required']) && empty($request->input('clock_in_out_location'))) {
             return ['success' => false,
                 'msg' => __('essentials::lang.you_must_enable_location'),
             ];
+        }
+        if (BusinessLocation::userMustProvideCoordinatesForAttendanceGeofence(auth()->user())) {
+            $lat = $request->input('clock_in_latitude');
+            $lng = $request->input('clock_in_longitude');
+            if ($lat === null || $lat === '' || $lng === null || $lng === '') {
+                return [
+                    'success' => false,
+                    'msg' => __('essentials::lang.attendance_geofence_coordinates_required'),
+                    'type' => $request->input('type'),
+                ];
+            }
         }
 
         try {

@@ -99,6 +99,7 @@ return[
 "attendance_note_required_late_clock_in" => "تم تسجيل الدخول بعد الفترة المسموحة بعد بداية الشفت. ملاحظة تسجيل الحضور مطلوبة.",
 "attendance_note_required_early_clock_out" => "تم تسجيل الخروج قبل الفترة المسموحة للانصراف. ملاحظة تسجيل الخروج مطلوبة.",
 "attendance_geofence_coordinates_required" => "خطوط الطول والعرض مطلوبة للتحقق من نطاق الحضور لهذا الفرع.",
+"attendance_geofence_location_id_required" => "يوجد أكثر من فرع له نطاق حضور. أرسل مع الطلب رقم الفرع location_id مع خط العرض والطول حتى يُقارَن موقعك بنطاق الفرع الصحيح.",
 "business_location_not_found" => "فرع العمل المحدد غير موجود.",
 "business_location_not_permitted" => "ليس لديك صلاحية استخدام هذا الفرع للحضور.",
 "attendance_geofence_zone" => "النطاق (جيوفنس)",

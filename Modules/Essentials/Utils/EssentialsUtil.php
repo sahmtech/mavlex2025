@@ -897,51 +897,94 @@ class EssentialsUtil extends Util
     }
 
     /**
-     * Resolves the business location for API clock-in (optional explicit branch id, else first branch).
+     * Branch whose attendance zone is used to evaluate API-submitted coordinates.
+     * Explicit location_id uses that branch when it has an active geofence; otherwise geofence is skipped for this request.
+     * Without location_id: if exactly one permitted branch has an active geofence, use it; if several do, caller must send location_id.
+     *
+     * @param  int|string|null  $locationId
+     * @return array{business_location: ?BusinessLocation, error: ?array{message: string, code: string, status: int}}
      */
-    protected function resolveClockInBusinessLocation(int $businessId, $locationId): ?BusinessLocation
+    protected function resolveBusinessLocationForApiGeofence(int $businessId, User $user, $locationId): array
     {
-        $q = BusinessLocation::where('business_id', $businessId);
-        if ($locationId !== null && $locationId !== '') {
-            return $q->where('id', (int) $locationId)->first();
+        $hasExplicitLocation = $locationId !== null && $locationId !== '';
+        $permitted = $user->permitted_locations($businessId);
+
+        if ($hasExplicitLocation) {
+            $bl = BusinessLocation::where('business_id', $businessId)->where('id', (int) $locationId)->first();
+            if ($bl === null) {
+                return [
+                    'business_location' => null,
+                    'error' => [
+                        'message' => __('essentials::lang.business_location_not_found'),
+                        'code' => 'BUSINESS_LOCATION_NOT_FOUND',
+                        'status' => 404,
+                    ],
+                ];
+            }
+            if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
+                return [
+                    'business_location' => null,
+                    'error' => [
+                        'message' => __('essentials::lang.business_location_not_permitted'),
+                        'code' => 'BUSINESS_LOCATION_NOT_PERMITTED',
+                        'status' => 403,
+                    ],
+                ];
+            }
+            if (! $bl->hasActiveAttendanceGeofence()) {
+                return ['business_location' => null, 'error' => null];
+            }
+
+            return ['business_location' => $bl, 'error' => null];
         }
 
-        return $q->orderBy('id')->first();
+        $candidates = BusinessLocation::where('business_id', $businessId)
+            ->when($permitted !== 'all', function ($q) use ($permitted) {
+                $q->whereIn('id', $permitted);
+            })
+            ->orderBy('id')
+            ->get()
+            ->filter(function (BusinessLocation $loc) {
+                return $loc->hasActiveAttendanceGeofence();
+            })
+            ->values();
+
+        if ($candidates->isEmpty()) {
+            return ['business_location' => null, 'error' => null];
+        }
+
+        if ($candidates->count() > 1) {
+            return [
+                'business_location' => null,
+                'error' => [
+                    'message' => __('essentials::lang.attendance_geofence_location_id_required'),
+                    'code' => 'LOCATION_ID_REQUIRED_FOR_GEOFENCE',
+                    'status' => 422,
+                ],
+            ];
+        }
+
+        return ['business_location' => $candidates->first(), 'error' => null];
     }
 
     /**
-     * API attendance geofence: coordinates required when branch geofence is active.
+     * API attendance geofence: compares latitude/longitude to the resolved branch zone (polygon or circle).
      * Outside the zone requires a non-empty note unless the shift allows attendance outside the zone.
      *
      * @return array{message: string, code: string, status: int}|null
      */
     protected function validateApiAttendanceGeofenceNotePolicy(int $businessId, User $user, $latitude, $longitude, $note, $locationId, bool $allowOutsideZoneWithoutNote): ?array
     {
-        $hasExplicitLocation = $locationId !== null && $locationId !== '';
-        $bl = $this->resolveClockInBusinessLocation($businessId, $locationId);
-        if ($hasExplicitLocation && $bl === null) {
-            return [
-                'message' => __('essentials::lang.business_location_not_found'),
-                'code' => 'BUSINESS_LOCATION_NOT_FOUND',
-                'status' => 404,
-            ];
+        $resolved = $this->resolveBusinessLocationForApiGeofence($businessId, $user, $locationId);
+        if ($resolved['error'] !== null) {
+            return $resolved['error'];
         }
+
+        $bl = $resolved['business_location'];
         if ($bl === null) {
             return null;
         }
 
-        $permitted = $user->permitted_locations($businessId);
-        if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
-            return [
-                'message' => __('essentials::lang.business_location_not_permitted'),
-                'code' => 'BUSINESS_LOCATION_NOT_PERMITTED',
-                'status' => 403,
-            ];
-        }
-
-        if (! $bl->hasActiveAttendanceGeofence()) {
-            return null;
-        }
         if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
             return [
                 'message' => __('essentials::lang.attendance_geofence_coordinates_required'),
@@ -987,23 +1030,12 @@ class EssentialsUtil extends Util
      */
     public function getClockInGeofenceStatus(int $businessId, \App\User $user, $latitude, $longitude, $clockInNote, $locationId): string
     {
-        $hasExplicitLocation = $locationId !== null && $locationId !== '';
-        $bl = $this->resolveClockInBusinessLocation($businessId, $locationId);
-        if ($hasExplicitLocation && $bl === null) {
-            return 'na';
-        }
-        if ($bl === null) {
+        $resolved = $this->resolveBusinessLocationForApiGeofence($businessId, $user, $locationId);
+        if ($resolved['error'] !== null || $resolved['business_location'] === null) {
             return 'na';
         }
 
-        $permitted = $user->permitted_locations($businessId);
-        if ($permitted !== 'all' && ! in_array($bl->id, $permitted, true)) {
-            return 'na';
-        }
-
-        if (! $bl->hasActiveAttendanceGeofence()) {
-            return 'na';
-        }
+        $bl = $resolved['business_location'];
 
         if ($latitude === null || $latitude === '' || $longitude === null || $longitude === '') {
             return 'na';
