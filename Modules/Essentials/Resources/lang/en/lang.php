@@ -95,7 +95,7 @@ return [
     'clock_in' => 'Clock In',
     'clock_out' => 'Clock Out',
     'clock_in_success' => 'Clocked In successfully',
-    'outside_attendance_geofence' => 'You are outside the allowed attendance zone. Add a note to clock in from this location, or move inside the zone.',
+    'outside_attendance_geofence' => 'You are clocking in or out outside the allowed zone. Please make sure you are inside the designated area or provide a reason.',
     'allow_clock_outside_geofence' => 'Allow attendance outside geofence zone without requiring a note',
     'allow_clock_outside_geofence_tooltip' => 'When disabled, clock-in/out outside the branch attendance zone requires a non-empty note for employees assigned to this shift.',
     'attendance_note_required_late_clock_in' => 'You clocked in after the allowed grace window for this shift. A clock-in note is required.',
