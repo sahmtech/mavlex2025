@@ -27,7 +27,7 @@
 		      	<input type="hidden" name="clock_in_latitude" id="clock_in_latitude" value="">
 		      	<input type="hidden" name="clock_in_longitude" id="clock_in_longitude" value="">
 	    	</div>
-	    	@if($is_location_required || ! empty($attendance_geofence_requires_coordinates))
+	    	@if($is_location_required)
 		    	<div class="row">
 		    		<div class="col-md-12">
 		    			<b>@lang('messages.location'):</b> <button type="button" class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline  tw-dw-btn-primary" id="get_current_location"> <i class="fas fa-map-marker-alt"></i> @lang('essentials::lang.get_current_location')</button>
