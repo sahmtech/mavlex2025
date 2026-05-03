@@ -5,6 +5,7 @@ namespace Modules\Essentials\Providers;
 use Illuminate\Database\Eloquent\Factory;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\View;
+use App\BusinessLocation;
 use Modules\Essentials\Entities\EssentialsAttendance;
 use App\Utils\ModuleUtil;
 use Illuminate\Console\Scheduling\Schedule;
@@ -71,8 +72,11 @@ class EssentialsServiceProvider extends ServiceProvider
                 $settings = session()->get('business.essentials_settings');
                 $settings = ! empty($settings) ? json_decode($settings, true) : [];
                 $is_location_required = ! empty($settings['is_location_required']) ? true : false;
+                $attendance_geofence_requires_coordinates = auth()->check()
+                    ? BusinessLocation::userMustProvideCoordinatesForAttendanceGeofence(auth()->user())
+                    : false;
 
-                $view->with(compact('ip_address', 'is_location_required'));
+                $view->with(compact('ip_address', 'is_location_required', 'attendance_geofence_requires_coordinates'));
             });
 
         $this->registerScheduleCommands();

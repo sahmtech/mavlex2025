@@ -108,6 +108,8 @@ return [
     'geofence_inside' => 'Inside zone',
     'geofence_outside' => 'Outside zone',
     'geofence_not_applicable' => 'Not set (no geofence or no GPS)',
+    'geofence_zone_indeterminate' => '—',
+    'did_not_clock_out' => 'Did not clock out',
     'employee_devices_help' => 'Each employee may register one mobile device from the app. Use delete to unregister so they can bind a new device.',
     'employee_devices' => 'Employee devices',
     'device_dev_name' => 'Device name',

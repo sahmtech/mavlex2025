@@ -28,8 +28,12 @@ class BusinessLocation extends Model
     /**
      * True when any branch the user may access has an active attendance geofence (GPS required to enforce zone + note rules).
      */
-    public static function userMustProvideCoordinatesForAttendanceGeofence(User $user): bool
+    public static function userMustProvideCoordinatesForAttendanceGeofence(?User $user): bool
     {
+        if ($user === null) {
+            return false;
+        }
+
         $businessId = (int) $user->business_id;
         $permitted = $user->permitted_locations($businessId);
 

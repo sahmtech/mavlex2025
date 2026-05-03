@@ -39,6 +39,22 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Geofence zone cell: داخل النطاق / خارج النطاق / indeterminate (na or unknown).
+     */
+    protected function formatAttendanceGeofenceZoneHtml(?string $status): string
+    {
+        $s = $status ?? null;
+        if ($s === null || $s === '' || $s === 'na') {
+            return '<span class="text-muted">'.e(__('essentials::lang.geofence_zone_indeterminate')).'</span>';
+        }
+        if ($s === 'inside') {
+            return '<span class="label label-success">'.e(__('essentials::lang.geofence_inside')).'</span>';
+        }
+
+        return '<span class="label label-warning">'.e(__('essentials::lang.geofence_outside')).'</span>';
+    }
+
+    /**
      * Display a listing of the resource.
      *
      * @return Response
@@ -67,6 +83,7 @@ class AttendanceController extends Controller
                                 'clock_in_note',
                                 'clock_in_geofence_status',
                                 'clock_out_note',
+                                'clock_out_geofence_status',
                                 'ip_address',
                                 DB::raw('DATE(clock_in_time) as date'),
                                 DB::raw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) as user"),
@@ -141,9 +158,7 @@ class AttendanceController extends Controller
                         return $eye_btn.' '.$edit_btn.' '.$delete_btn;
                     })
                     ->editColumn('clock_in_location', function ($row) {
-                        return ! empty($row->clock_in_location)
-                            ? nl2br(e($row->clock_in_location))
-                            : '<span class="text-muted">'.e(__('lang_v1.none')).'</span>';
+                        return $this->formatAttendanceGeofenceZoneHtml($row->clock_in_geofence_status ?? null);
                     })
                     ->editColumn('work_duration', function ($row) {
                         $clock_in = \Carbon::parse($row->clock_in_time);
@@ -158,43 +173,34 @@ class AttendanceController extends Controller
                         return $html;
                     })
                     ->editColumn('clock_in', function ($row) {
-                        $html = $this->moduleUtil->format_date($row->clock_in_time, true);
-                        if (! empty($row->clock_in_location)) {
-                            $html .= '<br>'.e($row->clock_in_location).'<br>';
-                        }
-
-                        return $html;
+                        return e($this->moduleUtil->format_date($row->clock_in_time, true));
                     })
                     ->editColumn('clock_in_note', function ($row) {
                         return ! empty($row->clock_in_note)
                             ? nl2br(e($row->clock_in_note))
                             : '<span class="text-muted">'.e(__('lang_v1.none')).'</span>';
                     })
-                    ->addColumn('geofence_zone', function ($row) {
-                        $s = $row->clock_in_geofence_status ?? null;
-                        if (empty($s) || $s === 'na') {
-                            return '<span class="text-muted">'.__('essentials::lang.geofence_not_applicable').'</span>';
-                        }
-                        if ($s === 'inside') {
-                            return '<span class="label label-success">'.e(__('essentials::lang.geofence_inside')).'</span>';
+                    ->addColumn('clock_out_geofence_zone', function ($row) {
+                        if (empty($row->clock_out_time)) {
+                            return '<span class="text-muted">'.e(__('essentials::lang.geofence_zone_indeterminate')).'</span>';
                         }
 
-                        return '<span class="label label-warning">'.e(__('essentials::lang.geofence_outside')).'</span>';
+                        return $this->formatAttendanceGeofenceZoneHtml($row->clock_out_geofence_status ?? null);
+                    })
+                    ->addColumn('clock_out_note_display', function ($row) {
+                        return ! empty($row->clock_out_note)
+                            ? nl2br(e($row->clock_out_note))
+                            : '<span class="text-muted">'.e(__('lang_v1.none')).'</span>';
                     })
                     ->editColumn('clock_out', function ($row) {
-                        $html = $this->moduleUtil->format_date($row->clock_out_time, true);
-                        if (! empty($row->clock_out_location)) {
-                            $html .= '<br>'.$row->clock_out_location.'<br>';
+                        if (empty($row->clock_out_time)) {
+                            return '<span class="text-muted">'.e(__('essentials::lang.did_not_clock_out')).'</span>';
                         }
 
-                        if (! empty($row->clock_out_note)) {
-                            $html .= '<br>'.$row->clock_out_note.'<br>';
-                        }
-
-                        return $html;
+                        return e($this->moduleUtil->format_date($row->clock_out_time, true));
                     })
                     ->editColumn('date', '{{@format_date($date)}}')
-                    ->rawColumns(['action', 'clock_in', 'clock_in_location', 'work_duration', 'clock_out', 'clock_in_note', 'geofence_zone'])
+                    ->rawColumns(['action', 'clock_in', 'clock_in_location', 'work_duration', 'clock_out', 'clock_in_note', 'clock_out_geofence_zone', 'clock_out_note_display'])
                     ->filterColumn('user', function ($query, $keyword) {
                         $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
                     })

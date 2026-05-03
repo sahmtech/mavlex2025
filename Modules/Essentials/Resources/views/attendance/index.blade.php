@@ -166,9 +166,10 @@
                                         <th>@lang('essentials::lang.clock_in')</th>
                                         <th>@lang('essentials::lang.clock_out')</th>
                                         <th>@lang('essentials::lang.clock_in_location')</th>
+                                        <th>@lang('essentials::lang.clock_out_location')</th>
                                         <th>@lang('essentials::lang.work_duration')</th>
-                                        <th>@lang('essentials::lang.attendance_geofence_zone')</th>
                                         <th>@lang('essentials::lang.clock_in_note')</th>
+                                        <th>@lang('essentials::lang.clock_out_note')</th>
                                         <th>@lang('essentials::lang.ip_address')</th>
                                         <th>@lang('essentials::lang.shift')</th>
                                         @can('essentials.crud_all_attendance')
@@ -316,9 +317,10 @@
                     { data: 'clock_in', name: 'clock_in', orderable: false, searchable: false},
                     { data: 'clock_out', name: 'clock_out', orderable: false, searchable: false},
                     { data: 'clock_in_location', name: 'clock_in_location', orderable: false, searchable: false},
+                    { data: 'clock_out_geofence_zone', name: 'clock_out_geofence_zone', orderable: false, searchable: false},
                     { data: 'work_duration', name: 'work_duration', orderable: false, searchable: false},
-                    { data: 'geofence_zone', name: 'geofence_zone', orderable: false, searchable: false},
                     { data: 'clock_in_note', name: 'clock_in_note', orderable: false, searchable: true},
+                    { data: 'clock_out_note_display', name: 'clock_out_note', orderable: false, searchable: true},
                     { data: 'ip_address', name: 'ip_address'},
                     { data: 'shift_name', name: 'es.name'},
                     @can('essentials.crud_all_attendance')

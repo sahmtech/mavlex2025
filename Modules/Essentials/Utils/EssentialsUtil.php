@@ -435,6 +435,16 @@ class EssentialsUtil extends Util
                 $clock_in->clock_out_longitude = round((float) $lng_out, 7);
             }
 
+            $locationIdForGeo = $data['location_id'] ?? null;
+            $clock_in->clock_out_geofence_status = $this->getClockInGeofenceStatus(
+                (int) $data['business_id'],
+                $employee,
+                $lat_out,
+                $lng_out,
+                '',
+                $locationIdForGeo
+            );
+
             unset($data['latitude'], $data['longitude'], $data['location_id']);
 
             $clock_in->clock_out_time = $data['clock_out_time'];

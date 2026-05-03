@@ -106,6 +106,8 @@ return[
 "geofence_inside" => "داخل النطاق",
 "geofence_outside" => "خارج النطاق",
 "geofence_not_applicable" => "غير محدد (لا جيوفنس أو لا إحداثيات)",
+"geofence_zone_indeterminate" => "—",
+"did_not_clock_out" => "لم يسجل انصراف",
 "employee_devices_help" => "لكل موظف جهاز واحد مسجل من التطبيق. استخدم مسح لإزالة التسجيل ليتمكن من ربط جهاز جديد.",
 "employee_devices" => "أجهزة الموظفين",
 "device_dev_name" => "اسم الجهاز",
