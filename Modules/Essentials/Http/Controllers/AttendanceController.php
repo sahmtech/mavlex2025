@@ -10,6 +10,7 @@ use Excel;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Storage;
 use Modules\Essentials\Entities\EssentialsAttendance;
 use Modules\Essentials\Entities\EssentialsUserDevice;
 use Modules\Essentials\Entities\Shift;
@@ -41,6 +42,31 @@ class AttendanceController extends Controller
     /**
      * Geofence zone cell: داخل النطاق / خارج النطاق / indeterminate (na or unknown).
      */
+    /**
+     * Icon button to open modal with clock-in / clock-out proof images (API upload).
+     */
+    protected function buildAttendanceImagesButtonHtml($row): string
+    {
+        $inPath = $row->clock_in_image ?? null;
+        $outPath = $row->clock_out_image ?? null;
+        if (empty($inPath) && empty($outPath)) {
+            return '<span class="text-muted">'.e(__('essentials::lang.attendance_no_photos')).'</span>';
+        }
+
+        $inUrl = ! empty($inPath) ? Storage::disk('public')->url($inPath) : '';
+        $outUrl = ! empty($outPath) ? Storage::disk('public')->url($outPath) : '';
+        $title = __('essentials::lang.attendance_view_photos');
+
+        return '<button type="button"'
+            .' class="tw-dw-btn tw-dw-btn-xs tw-dw-btn-outline tw-dw-btn-primary btn-attendance-images"'
+            .' data-in-img="'.e($inUrl).'"'
+            .' data-out-img="'.e($outUrl).'"'
+            .' title="'.e($title).'">'
+            .'<i class="fa fa-images" aria-hidden="true"></i>'
+            .' <span class="hidden-xs">'.e(__('essentials::lang.attendance_photos')).'</span>'
+            .'</button>';
+    }
+
     protected function formatAttendanceGeofenceZoneHtml(?string $status): string
     {
         $s = $status ?? null;
@@ -94,6 +120,8 @@ class AttendanceController extends Controller
                                 'clock_out_location',
                                 'clock_out_latitude',
                                 'clock_out_longitude',
+                                'clock_in_image',
+                                'clock_out_image',
                             ])->groupBy('essentials_attendances.id');
 
             $permitted_locations = auth()->user()->permitted_locations();
@@ -157,6 +185,9 @@ class AttendanceController extends Controller
 
                         return $eye_btn.' '.$edit_btn.' '.$delete_btn;
                     })
+                    ->addColumn('attendance_images', function ($row) {
+                        return $this->buildAttendanceImagesButtonHtml($row);
+                    })
                     ->editColumn('clock_in_location', function ($row) {
                         return $this->formatAttendanceGeofenceZoneHtml($row->clock_in_geofence_status ?? null);
                     })
@@ -200,7 +231,7 @@ class AttendanceController extends Controller
                         return e($this->moduleUtil->format_date($row->clock_out_time, true));
                     })
                     ->editColumn('date', '{{@format_date($date)}}')
-                    ->rawColumns(['action', 'clock_in', 'clock_in_location', 'work_duration', 'clock_out', 'clock_in_note', 'clock_out_geofence_zone', 'clock_out_note_display'])
+                    ->rawColumns(['action', 'attendance_images', 'clock_in', 'clock_in_location', 'work_duration', 'clock_out', 'clock_in_note', 'clock_out_geofence_zone', 'clock_out_note_display'])
                     ->filterColumn('user', function ($query, $keyword) {
                         $query->whereRaw("CONCAT(COALESCE(u.surname, ''), ' ', COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, '')) like ?", ["%{$keyword}%"]);
                     })

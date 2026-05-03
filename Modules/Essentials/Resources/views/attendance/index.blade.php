@@ -172,6 +172,7 @@
                                         <th>@lang('essentials::lang.clock_out_note')</th>
                                         <th>@lang('essentials::lang.ip_address')</th>
                                         <th>@lang('essentials::lang.shift')</th>
+                                        <th>@lang('essentials::lang.attendance_photos')</th>
                                         @can('essentials.crud_all_attendance')
                                             <th>@lang( 'messages.action' )</th>
                                         @endcan
@@ -288,6 +289,36 @@
     </div>
 </div>
 
+<div class="modal fade" id="attendance_images_modal" tabindex="-1" role="dialog" aria-labelledby="attendanceImagesLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="attendanceImagesLabel">@lang('essentials::lang.attendance_view_photos')</h4>
+            </div>
+            <div class="modal-body">
+                <div id="attendance_img_block_clock_in" class="hide" style="margin-bottom:20px;">
+                    <p><strong>@lang('essentials::lang.clock_in')</strong></p>
+                    <div class="text-center">
+                        <img id="attendance_img_clock_in" src="" alt="" class="img-thumbnail" style="max-width:100%;max-height:420px;">
+                    </div>
+                </div>
+                <div id="attendance_img_block_clock_out" class="hide">
+                    <p><strong>@lang('essentials::lang.clock_out')</strong></p>
+                    <div class="text-center">
+                        <img id="attendance_img_clock_out" src="" alt="" class="img-thumbnail" style="max-width:100%;max-height:420px;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="tw-dw-btn tw-dw-btn-neutral tw-text-white" data-dismiss="modal">@lang('messages.close')</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @section('javascript')
@@ -323,6 +354,7 @@
                     { data: 'clock_out_note_display', name: 'clock_out_note', orderable: false, searchable: true},
                     { data: 'ip_address', name: 'ip_address'},
                     { data: 'shift_name', name: 'es.name'},
+                    { data: 'attendance_images', name: 'attendance_images', orderable: false, searchable: false},
                     @can('essentials.crud_all_attendance')
                         { data: 'action', name: 'action', orderable: false, searchable: false},
                     @endcan
@@ -553,6 +585,34 @@
                     initAttendanceLocationsMap(inPt, outPt);
                 };
                 $('#attendance_locations_modal').modal('show');
+            });
+
+            $('#attendance_images_modal').on('hidden.bs.modal', function() {
+                $('#attendance_img_clock_in, #attendance_img_clock_out').attr('src', '');
+                $('#attendance_img_block_clock_in, #attendance_img_block_clock_out').addClass('hide');
+            });
+
+            $(document).on('click', '.btn-attendance-images', function() {
+                var $b = $(this);
+                var inU = $b.attr('data-in-img') || '';
+                var outU = $b.attr('data-out-img') || '';
+                var $inBlock = $('#attendance_img_block_clock_in');
+                var $outBlock = $('#attendance_img_block_clock_out');
+                if (inU) {
+                    $('#attendance_img_clock_in').attr('src', inU);
+                    $inBlock.removeClass('hide');
+                } else {
+                    $('#attendance_img_clock_in').attr('src', '');
+                    $inBlock.addClass('hide');
+                }
+                if (outU) {
+                    $('#attendance_img_clock_out').attr('src', outU);
+                    $outBlock.removeClass('hide');
+                } else {
+                    $('#attendance_img_clock_out').attr('src', '');
+                    $outBlock.addClass('hide');
+                }
+                $('#attendance_images_modal').modal('show');
             });
 
             $(document).on('submit', 'form#attendance_form', function(e) {
