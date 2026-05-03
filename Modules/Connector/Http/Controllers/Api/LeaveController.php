@@ -124,7 +124,7 @@ class LeaveController extends ApiController
             DB::beginTransaction();
 
             $input = [
-                'business_id' => $user->business_id,
+                'business_id' => $businessId,
                 'user_id' => $user->id,
                 'essentials_leave_type_id' => (int) $request->input('essentials_leave_type_id'),
                 'start_date' => $start,
@@ -133,19 +133,26 @@ class LeaveController extends ApiController
                 'status' => 'pending',
             ];
 
-            $ref_count = $this->moduleUtil->setAndGetReferenceCount('leave');
-            $business = Business::findOrFail($user->business_id);
+            $businessId = (int) $user->business_id;
+            $ref_count = $this->moduleUtil->setAndGetReferenceCount('leave', $businessId);
+            $business = Business::findOrFail($businessId);
             $settings = ! empty($business->essentials_settings) ? json_decode($business->essentials_settings, true) : [];
             $prefix = ! empty($settings['leave_ref_no_prefix']) ? $settings['leave_ref_no_prefix'] : '';
-            $input['ref_no'] = $this->moduleUtil->generateReferenceNumber('leave', $ref_count, null, $prefix);
+            $input['ref_no'] = $this->moduleUtil->generateReferenceNumber('leave', $ref_count, $businessId, $prefix);
 
             $leave = EssentialsLeave::create($input);
-            $leave->load('user');
-
-            $admins = $this->moduleUtil->get_admins($user->business_id);
-            Notification::send($admins, new NewLeaveNotification($leave));
 
             DB::commit();
+
+            try {
+                $leave->load('user');
+                $admins = $this->moduleUtil->get_admins($businessId);
+                if ($admins->isNotEmpty()) {
+                    Notification::send($admins, new NewLeaveNotification($leave));
+                }
+            } catch (\Exception $notifyEx) {
+                \Log::warning('Leave API: notification failed: '.$notifyEx->getMessage());
+            }
 
             return $this->respond([
                 'success' => true,
