@@ -113,6 +113,12 @@ return [
     'geofence_not_applicable' => 'Not set (no geofence or no GPS)',
     'geofence_zone_indeterminate' => '—',
     'did_not_clock_out' => 'Did not clock out',
+
+    'leave_api_essentials_not_installed' => 'Essentials module is not available.',
+    'leave_api_subscription' => 'Essentials is not enabled for this subscription.',
+    'leave_api_invalid_leave_type' => 'Invalid or unknown leave type for this business.',
+    'leave_api_invalid_dates' => 'Could not read start or end date.',
+    'leave_api_end_before_start' => 'End date must be on or after start date.',
     'employee_devices_help' => 'Each employee may register one mobile device from the app. Use delete to unregister so they can bind a new device.',
     'employee_devices' => 'Employee devices',
     'device_dev_name' => 'Device name',

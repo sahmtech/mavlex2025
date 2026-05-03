@@ -111,6 +111,12 @@ return[
 "geofence_not_applicable" => "غير محدد (لا جيوفنس أو لا إحداثيات)",
 "geofence_zone_indeterminate" => "—",
 "did_not_clock_out" => "لم يسجل انصراف",
+
+"leave_api_essentials_not_installed" => "وحدة الأساسيات (الموارد البشرية) غير مفعّلة.",
+"leave_api_subscription" => "الأساسيات غير مشمولة في اشتراك هذا النشاط.",
+"leave_api_invalid_leave_type" => "نوع الإجازة غير صالح أو غير موجود لهذا النشاط.",
+"leave_api_invalid_dates" => "تعذّر قراءة تاريخ البداية أو النهاية.",
+"leave_api_end_before_start" => "تاريخ النهاية يجب أن يكون في أو بعد تاريخ البداية.",
 "employee_devices_help" => "لكل موظف جهاز واحد مسجل من التطبيق. استخدم مسح لإزالة التسجيل ليتمكن من ربط جهاز جديد.",
 "employee_devices" => "أجهزة الموظفين",
 "device_dev_name" => "اسم الجهاز",
