@@ -73,6 +73,7 @@ Route::middleware('auth:api', 'timezone')->prefix('connector/api')->group(functi
     Route::post('clock-out', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'clockout']);
 
     Route::get('essentials/leave-types', [Modules\Connector\Http\Controllers\Api\LeaveController::class, 'leaveTypes']);
+    Route::get('essentials/my-leaves-and-balance', [Modules\Connector\Http\Controllers\Api\LeaveController::class, 'myLeavesAndBalance']);
     Route::post('essentials/leave-request', [Modules\Connector\Http\Controllers\Api\LeaveController::class, 'storeLeave']);
     Route::post('checkDevice', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'checkDevice']);
     Route::get('holidays', [Modules\Connector\Http\Controllers\Api\AttendanceController::class, 'getHolidays']);
