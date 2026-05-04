@@ -63,6 +63,7 @@ Route::middleware('auth:api', 'timezone')->prefix('connector/api')->group(functi
 
     Route::get('product-stock-report', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'getProductStock']);
     Route::get('notifications', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'getNotifications']);
+    Route::post('readAllNotifications', [Modules\Connector\Http\Controllers\Api\CommonResourceController::class, 'readAllNotifications']);
 
     Route::get('active-subscription', [Modules\Connector\Http\Controllers\Api\SuperadminController::class, 'getActiveSubscription']);
     Route::get('packages', [Modules\Connector\Http\Controllers\Api\SuperadminController::class, 'getPackages']);

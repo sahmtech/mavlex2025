@@ -581,28 +581,84 @@ class CommonResourceController extends ApiController
     }
 
     /**
-     * Get notifications
+     * Get notifications for the authenticated user (database notifications).
+     *
+     * @queryParam unread_only boolean If 1, only notifications not yet read.
+     * @queryParam limit integer Optional max rows (1–200). Default: all matching.
      *
      * @response {
             "data": [
                 {
-                    "msg": "Payroll for August/2020 added by Mr. Super Admin. Reference No. 2020/0002",
+                    "id": "uuid",
+                    "type": "Modules\\Essentials\\Notifications\\NewLeaveNotification",
+                    "msg": "...",
                     "icon_class": "fas fa-money-bill-alt bg-green",
-                    "link": "http://local.pos.com/hrm/payroll",
+                    "link": "https://example.com/hrm/payroll",
                     "read_at": null,
-                    "created_at": "3 hours ago"
+                    "created_at": "3 hours ago",
+                    "created_at_iso": "2026-05-01T12:00:00+00:00"
                 }
             ]
         }
      */
-    public function getNotifications()
+    public function getNotifications(Request $request)
     {
         $user = Auth::user();
-        $notifications = $user->notifications()->orderBy('created_at', 'DESC')->get();
+        $query = $user->notifications()->orderBy('created_at', 'DESC');
 
-        $notifications_data = $this->commonUtil->parseNotifications($notifications);
+        if ($request->boolean('unread_only')) {
+            $query->whereNull('read_at');
+        }
+
+        if ($request->filled('limit')) {
+            $limit = (int) $request->input('limit');
+            $limit = max(1, min(200, $limit));
+            $query->limit($limit);
+        }
+
+        $notifications = $query->get();
+
+        $notifications_data = [];
+        foreach ($notifications as $notification) {
+            $parsed = $this->commonUtil->parseNotifications(collect([$notification]));
+            foreach ($parsed as $row) {
+                $notifications_data[] = array_merge($row, [
+                    'id' => $notification->id,
+                    'type' => $notification->type,
+                    'read_at' => $notification->read_at ? $notification->read_at->toIso8601String() : null,
+                    'created_at_iso' => $notification->created_at->toIso8601String(),
+                ]);
+            }
+        }
 
         return new CommonResource($notifications_data);
+    }
+
+    /**
+     * Mark all unread notifications as read for the authenticated user.
+     *
+     * @response {
+     *   "success": true,
+     *   "msg": "Success",
+     *   "data": { "marked_count": 5 }
+     * }
+     */
+    public function readAllNotifications()
+    {
+        $user = Auth::user();
+        $count = (int) $user->unreadNotifications()->count();
+
+        if ($count > 0) {
+            $user->unreadNotifications()->update(['read_at' => now()]);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'msg' => __('lang_v1.success'),
+            'data' => [
+                'marked_count' => $count,
+            ],
+        ]);
     }
 
     /**
