@@ -137,6 +137,9 @@ class LeaveController extends ApiController
             $ref_count = $this->moduleUtil->setAndGetReferenceCount('leave', $businessId);
             $business = Business::findOrFail($businessId);
             $settings = ! empty($business->essentials_settings) ? json_decode($business->essentials_settings, true) : [];
+            if (! is_array($settings)) {
+                $settings = [];
+            }
             $prefix = ! empty($settings['leave_ref_no_prefix']) ? $settings['leave_ref_no_prefix'] : '';
             $input['ref_no'] = $this->moduleUtil->generateReferenceNumber('leave', $ref_count, $businessId, $prefix);
 
@@ -168,9 +171,11 @@ class LeaveController extends ApiController
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::emergency('Leave API: '.$e->getFile().':'.$e->getLine().' '.$e->getMessage());
+            \Log::emergency('Leave API: '.$e->getFile().':'.$e->getLine().' '.$e->getMessage(), ['exception' => $e]);
 
-            return $this->otherExceptions(__('messages.something_went_wrong'));
+            $msg = config('app.debug') ? $e->getMessage() : __('messages.something_went_wrong');
+
+            return $this->otherExceptions($msg);
         }
     }
 }
