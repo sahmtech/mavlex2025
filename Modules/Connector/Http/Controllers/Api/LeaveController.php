@@ -123,6 +123,8 @@ class LeaveController extends ApiController
         try {
             DB::beginTransaction();
 
+            $businessId = (int) $user->business_id;
+
             $input = [
                 'business_id' => $businessId,
                 'user_id' => $user->id,
@@ -132,8 +134,6 @@ class LeaveController extends ApiController
                 'reason' => $request->input('reason'),
                 'status' => 'pending',
             ];
-
-            $businessId = (int) $user->business_id;
             $ref_count = $this->moduleUtil->setAndGetReferenceCount('leave', $businessId);
             $business = Business::findOrFail($businessId);
             $settings = ! empty($business->essentials_settings) ? json_decode($business->essentials_settings, true) : [];
