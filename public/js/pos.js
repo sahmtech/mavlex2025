@@ -542,7 +542,7 @@ $(document).ready(function () {
             );
             //Customer Display
             tr.find('input[name^="item_price"]').val(
-                unit_price_inc_tax.toFixed(2)
+                __number_f(unit_price_inc_tax, false, false, __currency_precision)
             );
 
             pos_each_row(tr);
@@ -1030,6 +1030,7 @@ $(document).ready(function () {
 
             if (cnf) {
                 disable_pos_form_actions();
+                sync_sell_row_prices_before_submit();
 
                 var data = $(form).serialize();
                 data = data + "&status=final";
@@ -1391,6 +1392,7 @@ $(document).ready(function () {
         }
 
         if (sell_form.valid()) {
+            sync_sell_row_prices_before_submit();
             window.onbeforeunload = null;
             $(this).attr("disabled", true);
             sell_form.submit();
@@ -2106,6 +2108,26 @@ function pos_product_row(
         });
     }
 }
+//Ensure row prices are synced with full precision before form submit
+function sync_sell_row_prices_before_submit() {
+    $("table#pos_table tbody tr.product_row").each(function () {
+        var tr = $(this);
+        var discounted_unit_price = calculate_discounted_unit_price(tr);
+        var tax_rate = tr.find("select.tax_id").find(":selected").data("rate") || 0;
+        var min_amount = tr.find("select.tax_id").find(":selected").data("min_amount") || 0;
+        var tax_2_rate = tr.find("select.tax_id_2").find(":selected").data("rate") || 0;
+        var min_amount_2 = tr.find("select.tax_id_2").find(":selected").data("min_amount") || 0;
+        var unit_price_inc_tax = __add__percent(
+            discounted_unit_price,
+            tax_rate,
+            min_amount,
+            tax_2_rate,
+            min_amount_2
+        );
+        __write_number(tr.find("input.pos_unit_price_inc_tax"), unit_price_inc_tax);
+    });
+}
+
 //Update values for each row
 function pos_each_row(row_obj) {
     var unit_price = __read_number(row_obj.find("input.pos_unit_price"));
@@ -2126,31 +2148,13 @@ function pos_each_row(row_obj) {
         .find(":selected")
         .data("min_amount");
 
-    var unit_price_inc_tax =
-        discounted_unit_price +
-        __calculate_amount(
-            "percentage",
-            tax_rate,
-            discounted_unit_price,
-            min_amount,
-            tax_2_rate,
-            min_amount_2
-        );
-
-    console.log(" ---------- ");
-    console.log(discounted_unit_price);
-    console.log(
-        __calculate_amount(
-            "percentage",
-            tax_rate,
-            discounted_unit_price,
-            min_amount,
-            tax_2_rate,
-            min_amount_2
-        )
+    var unit_price_inc_tax = __add__percent(
+        discounted_unit_price,
+        tax_rate,
+        min_amount,
+        tax_2_rate,
+        min_amount_2
     );
-    console.log(unit_price_inc_tax);
-    console.log(" ---------- ");
 
     __write_number(
         row_obj.find("input.pos_unit_price_inc_tax"),
@@ -2180,8 +2184,6 @@ function pos_each_row(row_obj) {
                 if (min_amount > 0 && discounted_unit_price < min_amount) {
                     item_tax += min_amount;
                 } else {
-                    console.log('*******2************');
-                    console.log(item_tax + '     ' + item_tax_2);
                     var div = Decimal.div(tax_rate, 100).toNumber();
                     item_tax += Decimal.mul(div, discounted_unit_price).toNumber();
                 }
@@ -2225,8 +2227,6 @@ function pos_each_row(row_obj) {
                         item_tax_2 + discounted_unit_price
                     ).toNumber();
                 }
-
-                return res;
             }
         }
         // if there is only one tax rate
@@ -2240,9 +2240,6 @@ function pos_each_row(row_obj) {
         }
     }
     ////////////////////////
-    console.log('*********************fdgdfgdfgdf*');
-    console.log(item_tax);
-    console.log('*********************fdgdfgdfgdf*');
 
     __write_number(row_obj.find("input.item_tax"), item_tax);
 

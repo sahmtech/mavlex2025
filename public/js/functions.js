@@ -19,8 +19,12 @@ function __calculate_amount(calculation_type, calculation_amount, amount) {
     }
 }
 
-// //Add specified percentage to the input amount.
-function __add_percent(amount, percentage = 0) {
+//Add specified percentage to the input amount.
+function __add_percent(amount, percentage = 0, min_amount = 0, percentage_2 = 0, min_amount_2 = 0) {
+    if (arguments.length > 2) {
+        return __add__percent(amount, percentage, min_amount, percentage_2, min_amount_2);
+    }
+
     var amount = parseFloat(amount);
     var percentage = isNaN(percentage) ? 0 : parseFloat(percentage);
 
@@ -291,6 +295,11 @@ function __write_number(
 ) {
     if(input_element.hasClass('input_quantity')) {
         precision = __quantity_precision;
+    }
+
+    precision = parseInt(precision, 10);
+    if (isNaN(precision)) {
+        precision = 2;
     }
 
     input_element.val(__number_f(value, false, use_page_currency, precision));

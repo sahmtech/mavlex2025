@@ -47,6 +47,16 @@ class SetSessionData
             //set current financial year to session
             $financial_year = $business_util->getCurrentFinancialYear($business->id);
             $request->session()->put('financial_year', $financial_year);
+        } else {
+            // Keep precision settings in sync with DB (e.g. after admin changes)
+            $business_id = $request->session()->get('user.business_id');
+            $business = $request->session()->get('business');
+            $fresh = Business::select('currency_precision', 'quantity_precision')->find($business_id);
+            if ($fresh && $business) {
+                $business->currency_precision = $fresh->currency_precision;
+                $business->quantity_precision = $fresh->quantity_precision;
+                $request->session()->put('business', $business);
+            }
         }
 
         return $next($request);

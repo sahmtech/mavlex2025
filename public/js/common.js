@@ -120,14 +120,20 @@ $(document).ready(function () {
     __currency_decimal_separator = $('input#__decimal').val();
     __currency_symbol_placement = $('input#__symbol_placement').val();
     if ($('input#__precision').length > 0) {
-        __currency_precision = $('input#__precision').val();
+        __currency_precision = parseInt($('input#__precision').val(), 10);
     } else {
+        __currency_precision = 2;
+    }
+    if (isNaN(__currency_precision)) {
         __currency_precision = 2;
     }
 
     if ($('input#__quantity_precision').length > 0) {
-        __quantity_precision = $('input#__quantity_precision').val();
+        __quantity_precision = parseInt($('input#__quantity_precision').val(), 10);
     } else {
+        __quantity_precision = 2;
+    }
+    if (isNaN(__quantity_precision)) {
         __quantity_precision = 2;
     }
 
