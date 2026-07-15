@@ -123,7 +123,8 @@
                                         <td>
                                             <input name="products[{{ $loop->index }}][unit_price]"
                                                 class="form-control input-sm input_number unit_price"
-                                                value="{{ $sell_line->unit_price }}">
+                                                value="{{ $sell_line->unit_price }}"
+                                                data-orig-value="{{ $sell_line->unit_price }}">
                                         </td>
                                         <td>
                                             <span class="display_currency line_tax_span "
@@ -141,14 +142,16 @@
                                                 data-msg-max-value="@lang('validation.custom-messages.quantity_not_available', ['qty' => $sell_line->returnable_qty, 'unit' => $unit_name])">
 
                                             <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
-                                                class="unit_price_inc_tax" value="{{ $sell_line->unit_price_inc_tax }}">
+                                                class="unit_price_inc_tax" value="{{ $sell_line->unit_price_inc_tax }}"
+                                                data-orig-value="{{ $sell_line->unit_price_inc_tax }}">
                                             <input name="products[{{ $loop->index }}][sell_line_id]" type="hidden"
                                                 value="{{ $sell_line->id }}">
 
 
 
                                             <input class="item_tax" name="products[{{ $loop->index }}][item_tax]"
-                                                type="hidden" value="{{ $sell_line->item_tax }}">
+                                                type="hidden" value="{{ $sell_line->item_tax }}"
+                                                data-orig-value="{{ $sell_line->item_tax }}">
                                             <input name="products[{{ $loop->index }}][tax_id]" type="hidden"
                                                 value="{{ $sell_line->tax_id }}">
                                         </td>
@@ -303,24 +306,33 @@
         function update_sell_return_total() {
             var net_return = 0;
             var total_return_tax = 0;
+            var tax_percent = parseFloat($('input#tax_percent').val()) || 0;
 
             $('table#sell_return_table tbody tr').each(function() {
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
-                var calculated_tax = unit_price * 0.15;
+                var unit_price_input = $(this).find('input.unit_price');
+                var orig_unit_price = parseFloat(unit_price_input.data('orig-value'));
+                var item_tax;
+                var unit_price_inc_tax;
 
-                $(this).find('.line_tax_span').text(__currency_trans_from_en(calculated_tax, true));
-                $(this).find('input.item_tax').val(calculated_tax);
+                if (!isNaN(orig_unit_price) && unit_price === orig_unit_price) {
+                    item_tax = parseFloat($(this).find('input.item_tax').data('orig-value')) || 0;
+                    unit_price_inc_tax = parseFloat($(this).find('input.unit_price_inc_tax').data('orig-value')) || 0;
+                } else {
+                    unit_price_inc_tax = __add_percent(unit_price, tax_percent);
+                    item_tax = unit_price_inc_tax - unit_price;
+                }
 
-                var price_inc_tax = unit_price + calculated_tax;
-                $(this).find('input.unit_price_inc_tax').val(price_inc_tax);
-                var line_tax = __read_number($(this).find('input.item_tax'));
-                var total_price = unit_price + calculated_tax;
-                var subtotal = quantity * total_price;
+                $(this).find('.line_tax_span').text(__currency_trans_from_en(item_tax, true));
+                $(this).find('input.item_tax').val(item_tax);
+                $(this).find('input.unit_price_inc_tax').val(unit_price_inc_tax);
+
+                var subtotal = quantity * unit_price_inc_tax;
 
                 $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal, true));
                 net_return += subtotal;
-                total_return_tax += (quantity * line_tax);
+                total_return_tax += (quantity * item_tax);
             });
 
             var discount = 0;

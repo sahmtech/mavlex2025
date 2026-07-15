@@ -21,6 +21,9 @@ $(document).ready(function() {
             var cnf = true;
 
             if (cnf) {
+                if (typeof update_sell_return_total === 'function') {
+                    update_sell_return_total();
+                }
                 var data = $(form).serialize();
                 var url = $(form).attr('action');
                 $.ajax({

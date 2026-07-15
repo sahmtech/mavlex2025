@@ -70,6 +70,10 @@ class Util
 
         $formatted = number_format($input_number, $currency_precision, $decimal_separator, $thousand_separator);
 
+        if (! $is_quantity && $currency_precision > 2) {
+            $formatted = $this->trimTrailingDecimalZeros($formatted, $decimal_separator, 2);
+        }
+
         if ($add_symbol) {
             $currency_symbol_placement = ! empty($business_details) ? $business_details->currency_symbol_placement : session('business.currency_symbol_placement');
             $symbol = ! empty($business_details) ? $business_details->currency_symbol : session('currency')['symbol'];
@@ -82,6 +86,27 @@ class Util
         }
 
         return $formatted;
+    }
+
+    /**
+     * Trim trailing zeros from a formatted number while keeping a minimum decimal precision.
+     * e.g. 15,640.0000 -> 15,640.00 | 1,002.2250 -> 1,002.225
+     */
+    public function trimTrailingDecimalZeros($formatted, $decimal_separator, $min_precision = 2)
+    {
+        $parts = explode($decimal_separator, $formatted, 2);
+        if (count($parts) !== 2) {
+            return $formatted;
+        }
+
+        $decimal = rtrim($parts[1], '0');
+        if ($decimal === '') {
+            $decimal = str_repeat('0', $min_precision);
+        } elseif (strlen($decimal) < $min_precision) {
+            $decimal = str_pad($decimal, $min_precision, '0', STR_PAD_RIGHT);
+        }
+
+        return $parts[0].$decimal_separator.$decimal;
     }
 
     /**

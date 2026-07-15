@@ -6385,11 +6385,11 @@ class TransactionUtil extends Util
                     'product_id' => $sell_line->product_id,
                     'variation_id' => $sell_line->variation_id,
                     'quantity' => $quantity_returned,
-                    'unit_price' => $product_line['unit_price'],
-                    'item_tax' => $product_line['item_tax'],
-                    'unit_price_inc_tax' => $product_line['unit_price_inc_tax'],
+                    'unit_price' => $uf_number ? $this->num_uf($product_line['unit_price']) : $product_line['unit_price'],
+                    'item_tax' => $uf_number ? $this->num_uf($product_line['item_tax']) : $product_line['item_tax'],
+                    'unit_price_inc_tax' => $uf_number ? $this->num_uf($product_line['unit_price_inc_tax']) : $product_line['unit_price_inc_tax'],
                     'tax_id' => $product_line['tax_id'],
-                    'unit_price_before_discount' => $product_line['unit_price'],
+                    'unit_price_before_discount' => $uf_number ? $this->num_uf($product_line['unit_price']) : $product_line['unit_price'],
                     'parent_sell_line_id' => $sell_line->id, // the parent sell line id 
                     'created_at' => \Carbon::now(),
                     'updated_at' => \Carbon::now(),
@@ -6536,24 +6536,28 @@ class TransactionUtil extends Util
                     $product_line['unit_price_inc_tax']
                 );
             }
+
+            $variation = $product->variations->first();
+            $parent_sell_line_id = $product_line['sell_line_id'] ?? null;
+
+            $unit_price = $uf_number ? $this->num_uf($product_line['unit_price']) : $product_line['unit_price'];
+            $unit_price_inc_tax = $uf_number ? $this->num_uf($product_line['unit_price_inc_tax']) : $product_line['unit_price_inc_tax'];
+            $item_tax = $uf_number ? $this->num_uf($product_line['item_tax'] ?? 0) : ($product_line['item_tax'] ?? 0);
+            $quantity = $uf_number ? $this->num_uf($product_line['quantity']) : $product_line['quantity'];
+
+            TransactionSellLine::create([
+                'transaction_id' => $credit_notes->id,
+                'product_id' => $product->id,
+                'variation_id' => $variation->id,
+                'quantity' => $quantity,
+                'unit_price_before_discount' => $unit_price,
+                'unit_price' => $unit_price,
+                'unit_price_inc_tax' => $unit_price_inc_tax,
+                'item_tax' => $item_tax,
+                'tax_id' => $product_line['tax_id'] ?? null,
+                'parent_sell_line_id' => $parent_sell_line_id,
+            ]);
         }
-        $variation = $product->variations->first();
-
-        $parent_sell_line_id = $product_line['parent_sell_line_id'] ?? null;
-        $children_type = $product_line['children_type'] ?? null;
-
-        TransactionSellLine::create([
-            'transaction_id' => $credit_notes->id,
-            'product_id' => $product->id,
-            'variation_id' => $variation->id,
-            'quantity' => $product_line['quantity'],
-            'unit_price_before_discount' => $product_line['unit_price'],
-            'unit_price' => $product_line['unit_price'],
-            'unit_price_inc_tax' => $product_line['unit_price'],
-            'tax_id' => $product_line['tax_id'] ?? null,
-            'parent_sell_line_id' => $parent_sell_line_id,
-            // 'children_type' => $children_type,
-        ]);
 
         return $credit_notes;
     }

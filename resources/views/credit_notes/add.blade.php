@@ -155,7 +155,7 @@
 
 												  <input name="products[{{ $loop->index }}][unit_price_inc_tax]" type="hidden"
                                                 class="unit_price_inc_tax"
-                                                value="{{ @num_format($sell_line->unit_price_inc_tax) }}">
+                                                value="{{ $sell_line->unit_price_inc_tax }}">
                                             <input name="products[{{ $loop->index }}][sell_line_id]" type="hidden"
                                                 value="{{ $sell_line->id }}">
                                             <input name="products[{{ $loop->index }}][unit_price]" type="hidden"
@@ -303,14 +303,13 @@
             $('table#credit_notes_table tbody tr').each(function() {
                 var quantity = __read_number($(this).find('input.return_qty'));
                 var unit_price = __read_number($(this).find('input.unit_price'));
-                var item_tax = __read_number($(this).find('input.item_tax'));
+                var unit_price_inc_tax = parseFloat($(this).find('input.unit_price_inc_tax').val()) || 0;
+                var item_tax = unit_price_inc_tax - unit_price;
 
-                
-                var subtotal = quantity * unit_price;
-				console.log(subtotal);
-				
-                $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal+item_tax, true));
-                net_return += subtotal;
+                var subtotal = quantity * unit_price_inc_tax;
+
+                $(this).find('.return_subtotal').text(__currency_trans_from_en(subtotal, true));
+                net_return += quantity * unit_price;
             });
 
             var discount = 0;

@@ -21,6 +21,9 @@ $(document).ready(function() {
             var cnf = true;
 
             if (cnf) {
+                if (typeof update_credit_notes_total === 'function') {
+                    update_credit_notes_total();
+                }
                 var data = $(form).serialize();
                 var url = $(form).attr('action');
                 $.ajax({

@@ -327,22 +327,20 @@ function update_credit_notes_total() {
     $('table#credit_notes_table tbody tr').each(function() {
         var quantity = __read_number($(this).find('input.return_qty'));
         var unit_price = __read_number($(this).find('input.unit_price'));
-        var subtotal = quantity * unit_price;
+        var tax_select = $(this).find('select[name*="[tax_id]"]');
+        var tax_rate = parseFloat(tax_select.find('option:selected').data('rate')) || 0;
 
-         var tax_select = $(this).find('select[name*="[tax_id]"]');
-         var tax_rate = parseFloat(tax_select.find('option:selected').data('rate')) || 0;
-         var row_tax = __calculate_amount('percentage', tax_rate, subtotal);
-         var subtotal_with_tax = subtotal+row_tax;
-     
-         $(this).find('.return_subtotal_display').text(__currency_trans_from_en(subtotal_with_tax, true));
-         $(this).find('.return_subtotal').val(subtotal_with_tax);
-         $(this).find('.item_tax').val(row_tax);
+        var item_tax_per_unit = __calculate_amount('percentage', tax_rate, unit_price);
+        var unit_price_inc_tax = __add_percent(unit_price, tax_rate);
+        var line_subtotal_exc_tax = quantity * unit_price;
+        var line_subtotal_inc_tax = quantity * unit_price_inc_tax;
 
-        
-        net_return += subtotal;
+        $(this).find('.return_subtotal_display').text(__currency_trans_from_en(line_subtotal_inc_tax, true));
+        $(this).find('.return_subtotal').val(unit_price_inc_tax);
+        $(this).find('.item_tax').val(item_tax_per_unit);
 
-         total_tax += row_tax;
-
+        net_return += line_subtotal_exc_tax;
+        total_tax += quantity * item_tax_per_unit;
     });
 
    var discount = 0;

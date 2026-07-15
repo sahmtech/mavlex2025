@@ -171,12 +171,29 @@ function __tab_key_up(e) {
     }
 }
 
+function __trim_trailing_decimal_zeros(formatted, decimal_separator, min_precision = 2) {
+    var parts = formatted.split(decimal_separator);
+    if (parts.length !== 2) {
+        return formatted;
+    }
+
+    var decimal = parts[1].replace(/0+$/, '');
+    if (decimal === '') {
+        decimal = '0'.repeat(min_precision);
+    } else if (decimal.length < min_precision) {
+        decimal = decimal + '0'.repeat(min_precision - decimal.length);
+    }
+
+    return parts[0] + decimal_separator + decimal;
+}
+
 function __currency_trans_from_en(
     input,
     show_symbol = true,
     use_page_currency = false,
     precision = __currency_precision,
-    is_quantity = false
+    is_quantity = false,
+    trim_trailing_zeros = true
 ) {
     if (use_page_currency && __p_currency_symbol) {
         var s = __p_currency_symbol;
@@ -188,21 +205,35 @@ function __currency_trans_from_en(
         var decimal = __currency_decimal_separator;
     }
 
-    symbol = '';
-    var format = '%s%v';
+    var symbol = '';
     if (show_symbol) {
         symbol = s;
-        format = '%s %v';
-        if (__currency_symbol_placement == 'after') {
-            format = '%v %s';
-        }
     }
 
     if (is_quantity) {
         precision = __quantity_precision;
     }
 
-    return accounting.formatMoney(input, symbol, precision, thousand, decimal, format);
+    precision = parseInt(precision, 10);
+    if (isNaN(precision)) {
+        precision = 2;
+    }
+
+    var numeric_formatted = accounting.formatMoney(input, '', precision, thousand, decimal, '%v');
+
+    if (!is_quantity && trim_trailing_zeros && precision > 2) {
+        numeric_formatted = __trim_trailing_decimal_zeros(numeric_formatted, decimal, 2);
+    }
+
+    if (!show_symbol) {
+        return numeric_formatted;
+    }
+
+    if (__currency_symbol_placement == 'after') {
+        return numeric_formatted + ' ' + symbol;
+    }
+
+    return symbol + ' ' + numeric_formatted;
 }
 
 function __currency_convert_recursively(element, use_page_currency = false) {
@@ -278,7 +309,7 @@ function __number_f(
     use_page_currency = false,
     precision = __currency_precision
 ) {
-    return __currency_trans_from_en(input, show_symbol, use_page_currency, precision);
+    return __currency_trans_from_en(input, show_symbol, use_page_currency, precision, false, false);
 }
 
 //Read input and convert it into natural number
