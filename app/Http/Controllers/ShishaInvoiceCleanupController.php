@@ -56,7 +56,18 @@ class ShishaInvoiceCleanupController extends Controller
         ]);
 
         $business_id = $request->session()->get('user.business_id');
-        $parsed = $this->parseExcelRows($request->file('file')->getRealPath());
+        $uploaded_file = $request->file('file');
+
+        try {
+            $parsed = $this->parseExcelRows($uploaded_file);
+        } catch (\Maatwebsite\Excel\Exceptions\NoTypeDetectedException $e) {
+            return redirect()
+                ->action([self::class, 'index'])
+                ->with('status', [
+                    'success' => 0,
+                    'msg' => 'تعذّر قراءة الملف. تأكد أن الامتداد xlsx أو xls أو csv ثم أعد الرفع.',
+                ]);
+        }
 
         if (empty($parsed['rows'])) {
             return redirect()
@@ -232,9 +243,9 @@ class ShishaInvoiceCleanupController extends Controller
         return ! empty($transaction->zatca_status) && $transaction->zatca_status === 'success';
     }
 
-    protected function parseExcelRows($path)
+    protected function parseExcelRows($file)
     {
-        $sheet = Excel::toArray([], $path);
+        $sheet = Excel::toArray([], $file);
         $rows_raw = $sheet[0] ?? [];
         $rows = [];
         $unique_products = [];
