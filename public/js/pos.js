@@ -2125,6 +2125,8 @@ function sync_sell_row_prices_before_submit() {
             min_amount_2
         );
         __write_number(tr.find("input.pos_unit_price_inc_tax"), unit_price_inc_tax);
+        var item_tax = unit_price_inc_tax - discounted_unit_price;
+        __write_precision_number(tr.find("input.item_tax"), item_tax);
     });
 }
 
@@ -2241,7 +2243,7 @@ function pos_each_row(row_obj) {
     }
     ////////////////////////
 
-    __write_number(row_obj.find("input.item_tax"), item_tax);
+    __write_precision_number(row_obj.find("input.item_tax"), item_tax);
 
     __write_number(row_obj.find("input.item_tax_2"), item_tax_2);
     pos_total_row();

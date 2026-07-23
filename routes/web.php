@@ -51,6 +51,7 @@ use App\Http\Controllers\CreditNotesController;
 use App\Http\Controllers\SellingPriceGroupController;
 use App\Http\Controllers\SellPosController;
 use App\Http\Controllers\SellReturnController;
+use App\Http\Controllers\ShishaInvoiceCleanupController;
 use App\Http\Controllers\StockAdjustmentController;
 use App\Http\Controllers\StockTransferController;
 use App\Http\Controllers\TaxonomyController;
@@ -237,6 +238,11 @@ Route::middleware(['setData', 'auth', 'SetSessionData', 'language', 'timezone', 
     Route::post('/import-sales/preview', [ImportSalesController::class, 'preview']);
     Route::post('/import-sales', [ImportSalesController::class, 'import']);
     Route::get('/revert-sale-import/{batch}', [ImportSalesController::class, 'revertSaleImport']);
+
+    // Typed URL only – no sidebar/menu entry
+    Route::get('/tools/shisha-invoice-cleanup', [ShishaInvoiceCleanupController::class, 'index']);
+    Route::post('/tools/shisha-invoice-cleanup/preview', [ShishaInvoiceCleanupController::class, 'preview']);
+    Route::post('/tools/shisha-invoice-cleanup/confirm', [ShishaInvoiceCleanupController::class, 'confirm']);
 
     Route::get('/sells/pos/get_product_row/{variation_id}/{location_id}', [SellPosController::class, 'getProductRow']);
     Route::post('/sells/pos/get_payment_row', [SellPosController::class, 'getPaymentRow']);

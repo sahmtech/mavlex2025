@@ -550,7 +550,7 @@
                                                             @endif
                                                         </td>
                                                     @endif
-                                                    <td class="text-end"> {{(float) str_replace(',', '', $line['unit_price_inc_tax']) - (float) str_replace(',', '', $line['unit_price'])}}     </td>
+                                                    <td class="text-end">{{ $line['tax'] }}</td>
                                                     <td class="text-end">{{ $line['line_total'] }}</td>
                                                 </tr>
                                                 @if (!empty($line['modifiers']))

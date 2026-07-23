@@ -1380,7 +1380,7 @@ class TransactionUtil extends Util
                         $output['taxes'][$line['tax_name']] = 0;
                     }
 
-                    $output['taxes'][$line['tax_name']] += ($line['tax_unformatted'] * $line['quantity_uf']);
+                    $output['taxes'][$line['tax_name']] += ($line['line_tax_uf'] ?? ($line['tax_unformatted'] * $line['quantity_uf']));
                 }
 
                 if (! empty($line['tax_id']) && $line['tax_percent'] == 0) {
@@ -1389,7 +1389,7 @@ class TransactionUtil extends Util
                 $subtotal_exc_tax += $line['line_total_exc_tax_uf'];
                 $total_quantity += $line['quantity_uf'];
                 $total_line_discount += ($line['line_discount_uf'] * $line['quantity_uf']);
-                $total_line_taxes += ($line['tax_unformatted'] * $line['quantity_uf']);
+                $total_line_taxes += ($line['line_tax_uf'] ?? ($line['tax_unformatted'] * $line['quantity_uf']));
                 if (! empty($line['variation_id']) && ! in_array($line['variation_id'], $unique_items)) {
                     $unique_items[] = $line['variation_id'];
                 }
@@ -2104,6 +2104,38 @@ class TransactionUtil extends Util
     }
 
     /**
+     * Calculate receipt line amounts consistently (exc tax, tax, inc tax).
+     * For simple percentage taxes, derive tax from line subtotal to avoid
+     * per-unit rounding drift (e.g. 0.525 stored as 0.53).
+     */
+    protected function getReceiptLineAmounts($line, $tax_details)
+    {
+        $line_total_exc_tax_uf = $line->unit_price * $line->quantity;
+        $line_tax_uf = $line->quantity * $line->item_tax;
+
+        if (! empty($tax_details) && empty($tax_details->is_tax_group)) {
+            $sub_taxes = $tax_details->sub_taxes ?? collect();
+            if ($sub_taxes->isEmpty()) {
+                if (! empty($tax_details->min_amount) && $line->unit_price < $tax_details->min_amount) {
+                    $line_tax_uf = $line->quantity * $tax_details->min_amount;
+                } else {
+                    $line_tax_uf = $line_total_exc_tax_uf * ($tax_details->amount / 100);
+                }
+            }
+        }
+
+        $line_total_uf = $line_total_exc_tax_uf + $line_tax_uf;
+        $unit_tax_uf = $line->quantity != 0 ? ($line_tax_uf / $line->quantity) : 0;
+
+        return [
+            'line_total_exc_tax_uf' => $line_total_exc_tax_uf,
+            'line_tax_uf' => $line_tax_uf,
+            'line_total_uf' => $line_total_uf,
+            'unit_tax_uf' => $unit_tax_uf,
+        ];
+    }
+
+    /**
      * Returns each line details for sell invoice display
      *
      * @return array
@@ -2126,7 +2158,8 @@ class TransactionUtil extends Util
             $unit = $line->product->unit;
             $brand = $line->product->brand;
             $cat = $line->product->category;
-            $tax_details = TaxRate::find($line->tax_id);
+            $tax_details = TaxRate::with('sub_taxes')->find($line->tax_id);
+            $line_amounts = $this->getReceiptLineAmounts($line, $tax_details);
 
             $unit_name = ! empty($unit->short_name) ? $unit->short_name : '';
             $base_unit_name = $unit_name;
@@ -2153,25 +2186,26 @@ class TransactionUtil extends Util
                 'orig_quantity' => $this->num_f($line->orig_quantity, false, $business_details, true),
                 'unit_price' => $this->num_f($line->unit_price, false, $business_details),
                 'unit_price_uf' => $line->unit_price,
-                'tax' => $this->num_f($line->item_tax, false, $business_details),
+                'tax' => $this->num_f($line_amounts['unit_tax_uf'], false, $business_details),
                 'tax_id' => $line->tax_id,
-                'tax_unformatted' => $line->item_tax,
+                'tax_unformatted' => $line_amounts['unit_tax_uf'],
+                'line_tax_uf' => $line_amounts['line_tax_uf'],
                 'tax_name' => ! empty($tax_details) ? $tax_details->name : null,
                 'tax_percent' => ! empty($tax_details) ? $tax_details->amount : null,
 
                 //Field for 3rd column
-                'unit_price_inc_tax' => $this->num_f($line->unit_price_inc_tax, false, $business_details),
-                'unit_price_inc_tax_uf' => $line->unit_price_inc_tax,
+                'unit_price_inc_tax' => $this->num_f($line->unit_price + $line_amounts['unit_tax_uf'], false, $business_details),
+                'unit_price_inc_tax_uf' => $line->unit_price + $line_amounts['unit_tax_uf'],
                 'unit_price_exc_tax' => $this->num_f($line->unit_price, false, $business_details),
                 'base_unit_price' => $this->num_f($base_unit_price, false, $business_details),
-                'price_exc_tax' => $line->quantity * $line->unit_price,
+                'price_exc_tax' => $line_amounts['line_total_exc_tax_uf'],
                 'unit_price_before_discount' => $this->num_f($line->unit_price_before_discount, false, $business_details),
                 'unit_price_before_discount_uf' => $line->unit_price_before_discount,
                 //Fields for 4th column
-                'line_total' => $this->num_f($line->unit_price_inc_tax * $line->quantity, false, $business_details),
-                'line_total_uf' => $line->unit_price_inc_tax * $line->quantity,
-                'line_total_exc_tax' => $this->num_f($line->unit_price * $line->quantity, false, $business_details),
-                'line_total_exc_tax_uf' => $line->unit_price * $line->quantity,
+                'line_total' => $this->num_f($line_amounts['line_total_uf'], false, $business_details),
+                'line_total_uf' => $line_amounts['line_total_uf'],
+                'line_total_exc_tax' => $this->num_f($line_amounts['line_total_exc_tax_uf'], false, $business_details),
+                'line_total_exc_tax_uf' => $line_amounts['line_total_exc_tax_uf'],
                 'variation_id' => $variation->id,
 
                 // add for zatca pdf
@@ -2200,7 +2234,7 @@ class TransactionUtil extends Util
             //Group product taxes by name.
             if (! empty($tax_details)) {
                 if ($tax_details->is_tax_group) {
-                    $group_tax_details = $this->groupTaxDetails($tax_details, $line->quantity * $line->item_tax);
+                    $group_tax_details = $this->groupTaxDetails($tax_details, $line_amounts['line_tax_uf']);
 
                     $line_array['group_tax_details'] = $group_tax_details;
 
@@ -2215,7 +2249,7 @@ class TransactionUtil extends Util
                     if (! isset($output_taxes['taxes'][$tax_name])) {
                         $output_taxes['taxes'][$tax_name] = 0;
                     }
-                    $output_taxes['taxes'][$tax_name] += ($line->quantity * $line->item_tax);
+                    $output_taxes['taxes'][$tax_name] += $line_amounts['line_tax_uf'];
                 }
             }
 

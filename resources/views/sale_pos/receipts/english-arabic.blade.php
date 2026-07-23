@@ -193,10 +193,7 @@
                     <td class="print-red" style="text-align: center;">{{$line['quantity']}} {{$line['units']}}</td>
                     <td class="print-red" style=" text-align: center;">{{$line['unit_price_before_discount']}}</td>
                     <td class="print-red" style=" text-align: center;">{{$line['line_total_exc_tax']}}</td>
-                  <td class="print-red" style="text-align: center;">
-
-     {{(float) str_replace(',', '', $line['unit_price_inc_tax']) - (float) str_replace(',', '', $line['unit_price'])}}       
-</td>
+                  <td class="print-red" style="text-align: center;">{{$line['tax']}}</td>
 
                     <td class="print-red" style="text-align: center;">{{$line['line_total']}}</td>
                 </tr>
@@ -304,18 +301,9 @@
                                 </tr>
                             
 								@php
-                                    // Calculate total VAT (sum of all line taxes)
-                                    $total_vat = 0;
-                                   if (!empty($receipt_details->lines)) {
-    foreach ($receipt_details->lines as $line) {
-        if (!empty($line['tax']) && !empty($line['quantity'])) {
-            $tax      = (float) str_replace(',', '', $line['unit_price_inc_tax']) - (float) str_replace(',', '', $line['unit_price']);
-            $quantity = (float) str_replace(',', '', $line['quantity']);
-            $total_vat += $tax * $quantity;
-        }
-    }
-}
-
+                                    $total_vat = ($receipt_details->total_unformatted ?? 0)
+                                        - ($receipt_details->subtotal_unformatted ?? 0)
+                                        + ($receipt_details->discount_amount_unformatted ?? 0);
                                 @endphp
                                 <tr>
                                     <td style="font-weight: bold; text-align: right;">Total VAT:</td>

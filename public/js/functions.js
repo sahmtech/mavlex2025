@@ -281,6 +281,21 @@ function __translate(str, obj = []) {
     }
 }
 
+//Write input with full precision for form submission (avoids per-unit tax rounding drift)
+function __write_precision_number(input_element, value, precision) {
+    precision = parseInt(precision, 10);
+    if (isNaN(precision)) {
+        precision = parseInt(__currency_precision, 10) || 4;
+    }
+
+    var num = parseFloat(value);
+    if (isNaN(num)) {
+        num = 0;
+    }
+
+    input_element.val(num.toFixed(precision));
+}
+
 //If the value is positive, text-success class will be applied else text-danger
 function __highlight(value, obj) {
     obj.removeClass('text-success').removeClass('text-danger');
