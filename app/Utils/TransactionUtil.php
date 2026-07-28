@@ -6330,6 +6330,39 @@ class TransactionUtil extends Util
         return $parent_payment;
     }
 
+    /**
+     * Small allowance for return total vs original invoice when per-line tax
+     * rounding differs from invoice-level round_off on the parent sale.
+     */
+    public function getSellReturnRoundingTolerance($line_count)
+    {
+        $line_count = max(1, (int) $line_count);
+        $currency_precision = (int) session('business.currency_precision', 2);
+        $unit = pow(10, -1 * $currency_precision);
+
+        // 1 smallest unit per line, at least 10 units, at most 200 units (e.g. 0.10–2.00 SAR).
+        return min(200 * $unit, max(10 * $unit, $line_count * $unit));
+    }
+
+    /**
+     * Align recalculated return total with the remaining parent invoice amount.
+     */
+    protected function applySellReturnRoundingCap($invoice_total, $remaining_amount, $line_count)
+    {
+        if ($invoice_total['final_total'] <= $remaining_amount) {
+            return [$invoice_total, 0];
+        }
+
+        $diff = $invoice_total['final_total'] - $remaining_amount;
+        if ($diff > $this->getSellReturnRoundingTolerance($line_count)) {
+            return [$invoice_total, 0];
+        }
+
+        $invoice_total['final_total'] = $remaining_amount;
+
+        return [$invoice_total, -1 * $diff];
+    }
+
     public function addSellReturn($input, $business_id, $user_id, $uf_number = true, $update_sell_lines = false)
     {
         $discount = [
@@ -6350,6 +6383,16 @@ class TransactionUtil extends Util
             ->with(['sell_lines', 'sell_lines.sub_unit'])
             ->findOrFail($input['transaction_id']);
 
+        $already_returned_amount = Transaction::where('business_id', $business_id)
+            ->where('return_parent_id', $sell->id)
+            ->where('type', 'sell_return')
+            ->sum('final_total');
+        $remaining_amount = (float) $sell->final_total - (float) $already_returned_amount;
+        [$invoice_total, $round_off_amount] = $this->applySellReturnRoundingCap(
+            $invoice_total,
+            $remaining_amount,
+            count($input['products'])
+        );
 
         $sell_return_data = [
             'invoice_no' => $input['invoice_no'] ?? null,
@@ -6359,6 +6402,7 @@ class TransactionUtil extends Util
             'tax_amount' => 0,
             'total_before_tax' => $invoice_total['total_before_tax'],
             'final_total' => $invoice_total['final_total'],
+            'round_off_amount' => $round_off_amount,
             'adjustment_title' => $input['adjustment_title'] ?? __('lang_v1.adjustment_default_title'),
             'adjustment_amount' => $input['adjustment_amount'] ?? 0,
             'return_parent_id' => $sell->id,

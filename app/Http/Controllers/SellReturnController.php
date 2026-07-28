@@ -405,7 +405,10 @@ class SellReturnController extends Controller
                     ->where('type', 'sell_return')
                     ->sum('final_total');
 
-                if (($current_return_amount + $already_returned_amount) > ($sell->final_total + 0.001)) {
+                $remaining_amount = (float) $sell->final_total - (float) $already_returned_amount;
+                $tolerance = $this->transactionUtil->getSellReturnRoundingTolerance(count($input['products']));
+
+                if (($current_return_amount - $remaining_amount) > $tolerance) {
                     return [
                         'success' => 0,
                         'msg' => __('messages.total_return_excess_error', ['amount' => $this->transactionUtil->num_f($sell->final_total)]),
