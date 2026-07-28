@@ -252,6 +252,8 @@
                 {!! Form::hidden('tax_id', $sell->tax_id) !!}
                 {!! Form::hidden('tax_amount', 0, ['id' => 'tax_amount']) !!}
                 {!! Form::hidden('tax_percent', $tax_percent, ['id' => 'tax_percent']) !!}
+                <input type="hidden" id="remaining_return_amount" value="{{ $remaining_return_amount }}">
+                <input type="hidden" id="return_rounding_tolerance" value="{{ $return_rounding_tolerance }}">
                 <div class="row">
                     <div class="col-sm-12 text-right">
                         <strong>@lang('lang_v1.total_return_discount'):</strong>
@@ -266,6 +268,10 @@
                     <div class="col-sm-12 text-right">
                         <strong id="adjustment_label">@lang('lang_v1.adjustment_default_title'): </strong>&nbsp;
                         <span id="adjustment_value">0</span>
+                    </div>
+                    <div class="col-sm-12 text-right" id="return_round_off_row" style="display:none;">
+                        <strong>@lang('lang_v1.round_off'): </strong>&nbsp;
+                        <span id="return_round_off"></span>
                     </div>
                     <div class="col-sm-12 text-right">
                         <strong>@lang('lang_v1.return_total'): </strong>&nbsp;
@@ -354,11 +360,23 @@
             $('#adjustment_label').text(adjustment_title ? adjustment_title + ': ' : '@lang('lang_v1.adjustment_default_title')' + ': ');
             $('#adjustment_value').text(__currency_trans_from_en(adjustment_amount, true));
 
+            var final_total = net_return - discount;
+            var remaining = parseFloat($('#remaining_return_amount').val()) || 0;
+            var tolerance = parseFloat($('#return_rounding_tolerance').val()) || 0;
+
+            if (remaining > 0 && final_total > remaining && (final_total - remaining) <= tolerance) {
+                var round_off = remaining - final_total;
+                $('#return_round_off_row').show();
+                $('span#return_round_off').text(__currency_trans_from_en(round_off, true));
+                final_total = remaining;
+            } else {
+                $('#return_round_off_row').hide();
+            }
 
             $('input#tax_amount').val(total_return_tax);
             $('span#total_return_discount').text(__currency_trans_from_en(discount, true));
             $('span#total_return_tax').text(__currency_trans_from_en(total_return_tax, true));
-            $('span#net_return').text(__currency_trans_from_en(net_return, true));
+            $('span#net_return').text(__currency_trans_from_en(final_total, true));
         }
     </script>
 @endsection

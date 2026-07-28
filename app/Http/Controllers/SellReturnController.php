@@ -360,8 +360,15 @@ class SellReturnController extends Controller
             $sell->sell_lines[$key]->returnable_qty = $this->transactionUtil->num_f($remaining_returnable_quantity, false, null, true);
         }
 
+        $already_returned_amount = Transaction::where('business_id', $business_id)
+            ->where('return_parent_id', $sell->id)
+            ->where('type', 'sell_return')
+            ->sum('final_total');
+        $remaining_return_amount = (float) $sell->final_total - (float) $already_returned_amount;
+        $return_rounding_tolerance = $this->transactionUtil->getSellReturnRoundingTolerance($sell->sell_lines->count());
+
         return view('sell_return.add')
-            ->with(compact('sell'));
+            ->with(compact('sell', 'remaining_return_amount', 'return_rounding_tolerance'));
     }
 
     /**
