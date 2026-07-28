@@ -252,8 +252,8 @@
                 {!! Form::hidden('tax_id', $sell->tax_id) !!}
                 {!! Form::hidden('tax_amount', 0, ['id' => 'tax_amount']) !!}
                 {!! Form::hidden('tax_percent', $tax_percent, ['id' => 'tax_percent']) !!}
-                <input type="hidden" id="remaining_return_amount" value="{{ $remaining_return_amount }}">
-                <input type="hidden" id="return_rounding_tolerance" value="{{ $return_rounding_tolerance }}">
+                <input type="hidden" id="remaining_return_amount" value="{{ number_format($remaining_return_amount, 4, '.', '') }}">
+                <input type="hidden" id="return_rounding_tolerance" value="{{ number_format($return_rounding_tolerance, 4, '.', '') }}">
                 <div class="row">
                     <div class="col-sm-12 text-right">
                         <strong>@lang('lang_v1.total_return_discount'):</strong>
@@ -294,6 +294,11 @@
     <script src="{{ asset('js/printer.js?v=' . $asset_v) }}"></script>
     <script src="{{ asset('js/sell_return.js?v=' . $asset_v) }}"></script>
     <script type="text/javascript">
+        var sell_return_cap = {
+            remaining: {{ json_encode((float) $remaining_return_amount) }},
+            tolerance: {{ json_encode((float) $return_rounding_tolerance) }},
+        };
+
         $(document).ready(function() {
             $('form#sell_return_form').validate();
             update_sell_return_total();
@@ -361,10 +366,10 @@
             $('#adjustment_value').text(__currency_trans_from_en(adjustment_amount, true));
 
             var final_total = net_return - discount;
-            var remaining = parseFloat($('#remaining_return_amount').val()) || 0;
-            var tolerance = parseFloat($('#return_rounding_tolerance').val()) || 0;
+            var remaining = sell_return_cap.remaining;
+            var tolerance = sell_return_cap.tolerance;
 
-            if (remaining > 0 && final_total > remaining && (final_total - remaining) <= tolerance) {
+            if (remaining > 0 && final_total > remaining && (final_total - remaining) <= tolerance + 0.0001) {
                 var round_off = remaining - final_total;
                 $('#return_round_off_row').show();
                 $('span#return_round_off').text(__currency_trans_from_en(round_off, true));
